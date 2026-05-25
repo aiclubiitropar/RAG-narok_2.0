@@ -620,7 +620,7 @@ export default function Home() {
           
           {messages.length === 0 ? (
             // Unique Empty State / Dashboard
-            <div className="h-full flex flex-col items-center justify-center px-4 md:px-10 pb-20">
+            <div className="min-h-full flex flex-col items-center justify-center px-4 md:px-10 pb-40 pt-10 md:pb-28">
               <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl overflow-hidden shadow-2xl mb-8 relative bg-gradient-to-br from-[#1A2639] to-black border border-[#22304A] p-2">
                  <div className="absolute inset-0 bg-[#FBBF24] opacity-20 blur-xl rounded-full"></div>
                  <Image src="/RAG_logo.png" alt="Bot Logo" fill sizes="96px" className="object-cover scale-110 drop-shadow-lg" />
