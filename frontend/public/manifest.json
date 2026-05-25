@@ -1,0 +1,21 @@
+{
+  "name": "RAGnarok AI Assistant",
+  "short_name": "RAGnarok",
+  "description": "IIT Ropar's intelligent campus assistant powered by Multi-Agent RAG.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D131F",
+  "theme_color": "#0D131F",
+  "icons": [
+    {
+      "src": "/RAG_logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/RAG_logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

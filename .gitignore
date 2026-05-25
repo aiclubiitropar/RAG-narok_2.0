@@ -1,0 +1,40 @@
+# Ignore Python virtual environments
+rag_env/
+
+# Ignore environment variable files
+.env
+.env.*
+
+.venv/
+
+# Ignore VS Code settings
+.vscode/
+
+# Ignore Python cache and build files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore logs
+*.log
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore dist and build folders
+dist/
+build/
+
+# Ignore latest_emails.json file
+latest_emails.json
+
+longterm_db/
+# Ignore ChromaDB files
+chroma/
+chroma.sqlite3
+shortterm_db/
+uploads/

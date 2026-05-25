@@ -1,0 +1,46 @@
+import os
+from typing import List, Optional
+# pyrefly: ignore [missing-import]
+from pydantic_settings import BaseSettings
+# pyrefly: ignore [missing-import]
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path="../.env")
+
+class Settings(BaseSettings):
+    PROJECT_NAME: str = "RAGnarok 2.0"
+    VERSION: str = "2.0.0"
+    
+    # Qdrant configurations
+    QDRANT_URL: str = os.getenv("QDRANT_URL", "https://c44fd71d-99f2-4329-b661-b069e0598086.us-east-2-0.aws.cloud.qdrant.io:6333")
+    QDRANT_API_KEY: Optional[str] = os.getenv("QDRANT_API_KEY")
+    QDRANT_LONGTERM_COLLECTION: str = "longterm_db"
+    QDRANT_SHORTTERM_COLLECTION: str = "shortterm_db"
+    
+    # Redis & Celery
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+
+    # LLM (Groq) configurations
+    GROQ_API_KEYS: str = os.getenv("GROQ_API_KEYS", "") # comma separated list of keys
+    
+    # Supabase (optional here, mostly frontend uses it, but backend might verify JWTs)
+    SUPABASE_URL: Optional[str] = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY: Optional[str] = os.getenv("SUPABASE_KEY")
+    SUPABASE_JWT_SECRET: Optional[str] = os.getenv("SUPABASE_JWT_SECRET")
+
+    # Mem0
+    MEM0_API_KEY: Optional[str] = os.getenv("MEM0_API_KEY")
+
+    # SMTP for OTP
+    SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: Optional[str] = os.getenv("SMTP_USER")
+    SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
+
+    class Config:
+        env_file = "../.env"
+        extra = "ignore"
+
+settings = Settings()
