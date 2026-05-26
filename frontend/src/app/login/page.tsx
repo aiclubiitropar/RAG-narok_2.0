@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -36,7 +37,7 @@ export default function LoginPage() {
       const adminEmail = adminConfig.adminEmail?.trim().toLowerCase();
       const inputEmail = email.trim().toLowerCase();
 
-      if (adminEmail && inputEmail === adminEmail) {
+      if (adminEmail && inputEmail === adminEmail && !isForgotPassword) {
         if (isSignUp) {
           setError("This email already exists.");
           setIsLoading(false);
@@ -50,6 +51,67 @@ export default function LoginPage() {
           // Admin password is correct! Bypass Supabase entirely and set a cookie.
           document.cookie = "is_admin=true; path=/; max-age=86400";
           window.location.href = '/';
+          return;
+        }
+      }
+
+      // Forgot Password Flow
+      if (isForgotPassword) {
+        if (!isOtpSent) {
+          if (!email.endsWith('@iitrpr.ac.in')) {
+            setError("Only @iitrpr.ac.in accounts are permitted.");
+            setIsLoading(false);
+            return;
+          }
+          if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            setIsLoading(false);
+            return;
+          }
+
+          const res = await fetch(`${apiUrl}/api/auth/send-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setError(data.detail || "Failed to send reset OTP.");
+            setIsLoading(false);
+            return;
+          }
+          
+          setIsOtpSent(true);
+          setSuccess("A password reset OTP has been sent to your email.");
+          setIsLoading(false);
+          return;
+        } else {
+          // Verify Reset OTP and Update Password
+          if (!otp.trim() || otp.length !== 6) {
+            setError("Please enter a valid 6-digit OTP.");
+            setIsLoading(false);
+            return;
+          }
+
+          const res = await fetch(`${apiUrl}/api/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, otp, new_password: password })
+          });
+          const resData = await res.json();
+          if (!res.ok) {
+            setError(resData.detail || "Invalid or expired OTP.");
+            setIsLoading(false);
+            return;
+          }
+
+          setSuccess("Password updated successfully! You can now sign in.");
+          setIsForgotPassword(false);
+          setIsOtpSent(false);
+          setOtp('');
+          setPassword('');
+          setConfirmPassword('');
+          setIsLoading(false);
           return;
         }
       }
@@ -152,6 +214,17 @@ export default function LoginPage() {
     }
   };
 
+  const resetState = () => {
+    setIsSignUp(false);
+    setIsForgotPassword(false);
+    setError(null);
+    setSuccess(null);
+    setIsOtpSent(false);
+    setOtp('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#0D131F] text-white flex flex-col md:flex-row overflow-hidden font-sans">
 
@@ -202,10 +275,10 @@ export default function LoginPage() {
 
           <div className="text-center md:text-left">
             <h2 className="text-3xl font-bold tracking-tight mb-2">
-              {isSignUp ? "Create an account" : "Welcome back"}
+              {isForgotPassword ? "Reset Password" : (isSignUp ? "Create an account" : "Welcome back")}
             </h2>
             <p className="text-gray-400 font-medium">
-              {isSignUp ? "Join RAGnarok using your IIT Ropar email" : "Log in to your RAGnarok account to continue"}
+              {isForgotPassword ? "Enter your email and a new password" : (isSignUp ? "Join RAGnarok using your IIT Ropar email" : "Log in to your RAGnarok account to continue")}
             </p>
           </div>
 
@@ -242,7 +315,7 @@ export default function LoginPage() {
               </div>
             ) : (
               <>
-                {isSignUp && (
+                {isSignUp && !isForgotPassword && (
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-300 ml-1">Username</label>
                     <div className="relative">
@@ -280,9 +353,9 @@ export default function LoginPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between ml-1">
-                    <label className="text-sm font-semibold text-gray-300">Password</label>
-                    {!isSignUp && (
-                      <a href="#" className="text-xs text-[#FBBF24] hover:text-yellow-300 font-medium transition-colors">Forgot password?</a>
+                    <label className="text-sm font-semibold text-gray-300">{isForgotPassword ? "New Password" : "Password"}</label>
+                    {!isSignUp && !isForgotPassword && (
+                      <button type="button" onClick={() => { resetState(); setIsForgotPassword(true); }} className="text-xs text-[#FBBF24] hover:text-yellow-300 font-medium transition-colors">Forgot password?</button>
                     )}
                   </div>
                   <div className="relative">
@@ -300,9 +373,9 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {isSignUp && (
+                {(isSignUp || isForgotPassword) && (
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-300 ml-1">Confirm Password</label>
+                    <label className="text-sm font-semibold text-gray-300 ml-1">Confirm {isForgotPassword ? "New " : ""}Password</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <Lock size={18} className="text-gray-500" />
@@ -313,7 +386,7 @@ export default function LoginPage() {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         className="w-full bg-[#141C2B] border border-[#22304A] text-white rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-[#FBBF24]/50 focus:border-transparent transition-all placeholder-gray-600 font-medium"
                         placeholder="••••••••"
-                        required={isSignUp}
+                        required={isSignUp || isForgotPassword}
                       />
                     </div>
                   </div>
@@ -330,7 +403,7 @@ export default function LoginPage() {
                 <Loader2 size={20} className="animate-spin" />
               ) : (
                 <>
-                  <span>{isOtpSent ? "Verify & Sign up" : (isSignUp ? "Create Account" : "Sign in securely")}</span>
+                  <span>{isOtpSent ? (isForgotPassword ? "Verify & Reset" : "Verify & Sign up") : (isForgotPassword ? "Send Reset Code" : (isSignUp ? "Create Account" : "Sign in securely"))}</span>
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -338,13 +411,13 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-sm text-gray-500 font-medium mt-8">
-            {isSignUp ? (
+            {isSignUp || isForgotPassword ? (
               <>
-                Already have an account? <button type="button" onClick={() => { setIsSignUp(false); setError(null); setSuccess(null); setIsOtpSent(false); }} className="text-[#FBBF24] hover:text-yellow-300 transition-colors">Sign in</button>
+                <button type="button" onClick={resetState} className="text-[#FBBF24] hover:text-yellow-300 transition-colors">Back to Sign in</button>
               </>
             ) : (
               <>
-                Don't have an account? <button type="button" onClick={() => { setIsSignUp(true); setError(null); setSuccess(null); setIsOtpSent(false); }} className="text-[#FBBF24] hover:text-yellow-300 transition-colors">Sign up</button>
+                Don't have an account? <button type="button" onClick={() => { resetState(); setIsSignUp(true); }} className="text-[#FBBF24] hover:text-yellow-300 transition-colors">Sign up</button>
               </>
             )}
           </p>
