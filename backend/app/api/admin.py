@@ -193,7 +193,7 @@ async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Heade
             raise HTTPException(status_code=400, detail="Could not extract any text from the PDF. It may be image-based.")
 
         # Structure the messy PDF text using Groq
-        llm = get_groq_llm()
+        llm = get_groq_llm(use_sum_key=True)
         prompt = f"The following text was extracted from a PDF of a hostel mess menu (food schedule for the week/month). The text is very messy because of the PDF extraction. Please reconstruct this into a clean, easy-to-read Markdown table. Do not include any extra conversation, ONLY output the Markdown table.\n\nRaw Text:\n{extracted_text}"
         
         response = llm.invoke([HumanMessage(content=prompt)])
@@ -263,7 +263,7 @@ async def upload_emails(req: EmailUploadRequest, authorization: str = Header(Non
         
         docs = []
         for em in req.emails:
-            llm = get_groq_llm()
+            llm = get_groq_llm(use_sum_key=True)
             prompt = f"Summarize the following email body into a concise, informative paragraph for an AI assistant's memory. CRITICAL: If the email contains any tabular data, schedules, or structured lists, you MUST preserve and format them accurately as Markdown tables or lists below your summary paragraph.\n\nEmail Body:\n{em.body}"
             
             response = llm.invoke([HumanMessage(content=prompt)])

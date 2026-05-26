@@ -21,9 +21,15 @@ class GroqKeyManager:
 
 key_manager = GroqKeyManager()
 
-def get_groq_llm(model_name: str = "llama-3.3-70b-versatile", temperature: float = 0.0) -> ChatGroq:
+def get_groq_llm(model_name: str = "llama-3.3-70b-versatile", temperature: float = 0.0, use_sum_key: bool = False) -> ChatGroq:
     """Returns a ChatGroq instance using a randomly selected API key to handle high traffic."""
     api_key = key_manager.get_random_key()
+    
+    if use_sum_key:
+        sum_key = os.getenv("GROQ_SUM")
+        if sum_key and sum_key.strip():
+            api_key = sum_key.strip()
+            
     return ChatGroq(
         api_key=api_key,
         model_name=model_name,
