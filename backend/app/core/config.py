@@ -37,11 +37,13 @@ class Settings(BaseSettings):
     # Mem0
     MEM0_API_KEY: Optional[str] = os.getenv("MEM0_API_KEY")
 
-    # SMTP for OTP
+    # SMTP/Email settings
     SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USER: Optional[str] = os.getenv("SMTP_USER")
     SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
+    EMAIL_SERVICE_URL: Optional[str] = os.getenv("EMAIL_SERVICE_URL")
+    EMAIL_SERVICE_API_KEY: Optional[str] = os.getenv("EMAIL_SERVICE_API_KEY")
 
     class Config:
         env_file = "../.env"
