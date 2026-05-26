@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
-from worker.tasks.email_tasks import fetch_and_summarize_emails
+from worker.tasks.email_tasks import fetch_and_summarize_emails, fetch_and_process_mess_menu
 from app.core.config import settings
 import redis
 import json
@@ -13,9 +13,10 @@ redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 @router.post("/trigger-email-worker")
 def trigger_email_worker():
-    """Manually trigger the Celery worker to fetch and summarize emails."""
-    task = fetch_and_summarize_emails.delay()
-    return {"status": "Task dispatched", "task_id": task.id}
+    """Manually trigger the Celery worker to fetch and summarize emails and mess menu."""
+    task1 = fetch_and_summarize_emails.delay()
+    task2 = fetch_and_process_mess_menu.delay()
+    return {"status": "Tasks dispatched", "task_id_emails": task1.id, "task_id_mess_menu": task2.id}
 
 class WorkerConfig(BaseModel):
     polling_rate_hours: float
