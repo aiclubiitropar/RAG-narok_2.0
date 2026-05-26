@@ -113,7 +113,7 @@ class EmailScraper:
             logger.error(f"Failed to scrape emails: {e}")
             return []
 
-    def scrape_latest_mess_menu(self):
+    def scrape_latest_mess_menu(self, redis_client=None):
         try:
             self.connect()
             self.mail.select("inbox")
@@ -154,8 +154,12 @@ class EmailScraper:
                                                     attachments_text += extracted + "\n"
                                         except Exception as e:
                                             logger.error(f"Failed to read Mess Menu PDF attachment: {e}")
+                                            if redis_client:
+                                                push_log(redis_client, f"PyPDF2 error on {filename}: {e}")
                         
                         if attachments_text.strip():
+                            if redis_client:
+                                push_log(redis_client, f"Successfully extracted {len(attachments_text)} chars from {filename}")
                             return {
                                 "id": str(e_id.decode()),
                                 "subject": subject,
@@ -182,7 +186,7 @@ def fetch_and_process_mess_menu():
         
     scraper = EmailScraper(username, password)
     push_log(redis_client, "Searching for latest Mess Menu email...")
-    menu_data = scraper.scrape_latest_mess_menu()
+    menu_data = scraper.scrape_latest_mess_menu(redis_client=redis_client)
     
     if not menu_data:
         push_log(redis_client, "No Mess Menu email found.")
