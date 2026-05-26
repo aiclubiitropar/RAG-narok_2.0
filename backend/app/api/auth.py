@@ -19,7 +19,12 @@ from supabase import create_client
 # We use the service_role key to allow administrative actions like resetting passwords
 supabase_admin = None
 if settings.SUPABASE_URL and settings.SUPABASE_KEY:
-    supabase_admin = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    _clean_url = settings.SUPABASE_URL.strip().strip('"').strip("'")
+    _clean_key = settings.SUPABASE_KEY.strip().strip('"').strip("'")
+    try:
+        supabase_admin = create_client(_clean_url, _clean_key)
+    except Exception as e:
+        print(f"Failed to initialize Supabase admin client: {e}")
 
 class OTPVerify(BaseModel):
     email: str
