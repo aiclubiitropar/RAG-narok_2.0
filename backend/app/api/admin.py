@@ -14,6 +14,7 @@ redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
 @router.post("/trigger-email-worker")
 def trigger_email_worker():
     """Manually trigger the Celery worker to fetch and summarize emails and mess menu."""
+    redis_client.delete("last_processed_mess_menu_id")
     task1 = fetch_and_summarize_emails.delay()
     task2 = fetch_and_process_mess_menu.delay()
     return {"status": "Tasks dispatched", "task_id_emails": task1.id, "task_id_mess_menu": task2.id}
