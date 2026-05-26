@@ -117,7 +117,7 @@ class EmailScraper:
         try:
             self.connect()
             self.mail.select("inbox")
-            status, messages = self.mail.search(None, '(SUBJECT "mess menu")')
+            status, messages = self.mail.search(None, '(SUBJECT "mess" SUBJECT "menu")')
             if status != "OK" or not messages[0]:
                 return None
                 
