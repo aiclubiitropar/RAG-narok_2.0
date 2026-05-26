@@ -29,9 +29,8 @@ def send_otp_email(to_email: str, otp: str):
         
     try:
         response = httpx.post(
-            f"{email_service_url.rstrip('/')}/send-email",
-            json={"to_email": to_email, "otp": otp},
-            headers={"x-api-key": api_key},
+            email_service_url,
+            json={"to_email": to_email, "otp": otp, "apiKey": api_key},
             timeout=60.0
         )
         response.raise_for_status()
