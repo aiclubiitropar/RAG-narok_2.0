@@ -21,7 +21,7 @@ class GroqKeyManager:
 
 key_manager = GroqKeyManager()
 
-def get_groq_llm(model_name: str = "qwen/qwen3-32b", temperature: float = 0.0) -> ChatGroq:
+def get_groq_llm(model_name: str = "llama-3.3-70b-versatile", temperature: float = 0.0) -> ChatGroq:
     """Returns a ChatGroq instance using a randomly selected API key to handle high traffic."""
     api_key = key_manager.get_random_key()
     return ChatGroq(

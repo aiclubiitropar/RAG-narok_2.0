@@ -192,8 +192,15 @@ async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Heade
         if not extracted_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract any text from the PDF. It may be image-based.")
 
+        # Structure the messy PDF text using Groq
+        llm = get_groq_llm()
+        prompt = f"The following text was extracted from a PDF of a hostel mess menu (food schedule for the week/month). The text is very messy because of the PDF extraction. Please reconstruct this into a clean, easy-to-read Markdown table. Do not include any extra conversation, ONLY output the Markdown table.\n\nRaw Text:\n{extracted_text}"
+        
+        response = llm.invoke([HumanMessage(content=prompt)])
+        structured_menu = response.content.strip()
+
         # Log it to Redis so it appears in the UI
-        log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] Apps Script pushed {req.filename}. Extracted {len(extracted_text)} chars."
+        log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] Apps Script pushed {req.filename}. Structured and saved successfully!"
         try:
             redis_client.lpush("email_worker_logs", log_msg)
             redis_client.ltrim("email_worker_logs", 0, 99)
@@ -202,7 +209,7 @@ async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Heade
 
         # Ingest into Qdrant shortterm collection
         doc = Document(
-            page_content=extracted_text,
+            page_content=f"MESS MENU ({req.filename}):\n\n{structured_menu}",
             metadata={"source": req.filename, "type": "mess_menu", "date_processed": datetime.now().isoformat()}
         )
         

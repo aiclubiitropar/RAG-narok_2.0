@@ -18,7 +18,7 @@ class GradioEmbeddings(Embeddings):
     @property
     def client(self):
         if self._client is None:
-            self._client = Client("IotaCluster/embedding-model")
+            self._client = Client("IotaCluster/embedding-model", hf_token=settings.HF_TOKEN)
         return self._client
 
     def _extract_embedding(self, result) -> list[float]:
@@ -48,13 +48,31 @@ class GradioEmbeddings(Embeddings):
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         embeddings = []
         for t in texts:
-            result = self.client.predict(text=t, api_name="/embed_dense")
-            embeddings.append(self._extract_embedding(result))
+            embeddings.append(self.embed_query(t))
         return embeddings
 
     def embed_query(self, text: str) -> list[float]:
-        result = self.client.predict(text=text, api_name="/embed_dense")
-        return self._extract_embedding(result)
+        import time
+        max_retries = 5
+        base_delay = 2.0
+        
+        for attempt in range(max_retries):
+            try:
+                result = self.client.predict(text=text, api_name="/embed_dense")
+                return self._extract_embedding(result)
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"Failed to get embeddings after {max_retries} attempts: {e}")
+                    raise
+                
+                # If rate limited, sleep and retry
+                error_str = str(e).lower()
+                if "too many requests" in error_str or "rate limit" in error_str or "500" in error_str or "503" in error_str:
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"Embedding API rate limited. Retrying in {delay} seconds (Attempt {attempt+1}/{max_retries})...")
+                    time.sleep(delay)
+                else:
+                    raise
 
 # Initialize embeddings
 embeddings = GradioEmbeddings()
