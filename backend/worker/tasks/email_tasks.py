@@ -14,6 +14,7 @@ import time
 import PyPDF2
 from io import BytesIO
 from qdrant_client import QdrantClient
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ class EmailScraper:
                         date = msg.get("Date")
                         
                         # Apply blocklist filter
-                        blocklist = ["no-reply@accounts.google.com", "security alert", "unstop", "linkedin", "kaggle", "team unstop", "canva", "noreply@github.com", "noreply", "feed","huggingface","instagram","udacity","udemy","supabase"]
+                        blocklist = ["no-reply@accounts.google.com", "security alert", "unstop", "linkedin", "kaggle", "team unstop", "canva", "noreply@github.com", "noreply", "feed","huggingface","instagram","udacity","udemy","supabase","vercel"]
                         if any(b in from_.lower() or b in subject.lower() for b in blocklist):
                             continue
                             
@@ -111,6 +112,108 @@ class EmailScraper:
         except Exception as e:
             logger.error(f"Failed to scrape emails: {e}")
             return []
+
+    def scrape_latest_mess_menu(self):
+        try:
+            self.connect()
+            self.mail.select("inbox")
+            status, messages = self.mail.search(None, '(SUBJECT "mess menu")')
+            if status != "OK" or not messages[0]:
+                return None
+                
+            email_ids = messages[0].split()
+            e_id = email_ids[-1] # Most recent
+            status, msg_data = self.mail.fetch(e_id, "(RFC822)")
+            
+            for response_part in msg_data:
+                if isinstance(response_part, tuple):
+                    msg = email.message_from_bytes(response_part[1])
+                    subject, encoding = decode_header(msg["Subject"])[0]
+                    if isinstance(subject, bytes):
+                        subject = subject.decode(encoding if encoding else "utf-8")
+                    
+                    date = msg.get("Date")
+                    attachments_text = ""
+                    if msg.is_multipart():
+                        for part in msg.walk():
+                            content_disposition = str(part.get("Content-Disposition"))
+                            if "attachment" in content_disposition:
+                                filename = part.get_filename()
+                                if filename and filename.lower().endswith('.pdf'):
+                                    payload = part.get_payload(decode=True)
+                                    try:
+                                        pdf_reader = PyPDF2.PdfReader(BytesIO(payload))
+                                        for page in pdf_reader.pages:
+                                            attachments_text += page.extract_text() + "\n"
+                                    except Exception as e:
+                                        logger.error(f"Failed to read Mess Menu PDF attachment: {e}")
+                    
+                    if attachments_text:
+                        return {
+                            "id": str(e_id),
+                            "subject": subject,
+                            "date": date,
+                            "attachments_text": attachments_text
+                        }
+            return None
+        except Exception as e:
+            logger.error(f"Failed to scrape mess menu: {e}")
+            return None
+
+@celery_app.task
+def fetch_and_process_mess_menu():
+    """
+    Fetches the latest email with 'mess menu' in the subject, extracts the PDF,
+    formats it into a markdown table using the LLM, and replaces the existing mess menu in Qdrant.
+    """
+    redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"), decode_responses=True)
+    
+    username = os.getenv("GMAIL_USERNAME")
+    password = os.getenv("GMAIL_PASSWORD")
+    if not username or not password:
+        return
+        
+    scraper = EmailScraper(username, password)
+    push_log(redis_client, "Searching for latest Mess Menu email...")
+    menu_data = scraper.scrape_latest_mess_menu()
+    
+    if not menu_data:
+        push_log(redis_client, "No Mess Menu email found.")
+        return
+        
+    last_processed_id = redis_client.get("last_processed_mess_menu_id")
+    if last_processed_id == menu_data["id"]:
+        return # Already processed this specific email
+        
+    push_log(redis_client, f"Found new Mess Menu: {menu_data['subject']}. Parsing with LLM...")
+    
+    import datetime
+    readable_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+    
+    llm = get_groq_llm()
+    prompt = f"The following is raw text extracted from a Mess Menu PDF sent on {menu_data['date']}. Convert this exact information into a clean, well-formatted Markdown Table. Above the table, add a clear H3 heading stating the Month and Year. Do not include any other conversational text.\n\nRaw Text:\n{menu_data['attachments_text']}"
+    
+    response = llm.invoke([HumanMessage(content=prompt)])
+    markdown_table = response.content.strip()
+    
+    page_content = f"Source: Mess Menu\nDate Received: {menu_data['date']}\nIngestion Timestamp: {readable_time}\nSubject: {menu_data['subject']}\n\n{markdown_table}"
+        
+    doc = Document(
+        page_content=page_content,
+        metadata={"source": "mess_menu", "id": menu_data["id"], "timestamp": time.time()}
+    )
+    
+    QdrantVectorStore.from_documents(
+        [doc],
+        embeddings,
+        url=os.getenv("QDRANT_URL"),
+        api_key=os.getenv("QDRANT_API_KEY"),
+        collection_name="shortterm_db",
+        force_recreate=False
+    )
+    
+    redis_client.set("last_processed_mess_menu_id", menu_data["id"])
+    push_log(redis_client, "Successfully updated the Mess Menu in shortterm_db.")
 
 @celery_app.task
 def fetch_and_summarize_emails():
