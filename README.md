@@ -1,4 +1,13 @@
-# RAGnarok 2.0 🚀
+﻿---
+title: RAGnarok Backend
+emoji: 🚀
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
+# RAGnarok 2.0 ðŸš€
 
 RAGnarok is an intelligent, multi-agent AI Assistant customized specifically for the Iota Cluster / IIT Ropar campus. Built with a modern Agentic Retrieval-Augmented Generation (RAG) architecture, it acts as a centralized knowledge hub for everything from academic calendars and mess menus to administrative announcements.
 
@@ -16,11 +25,11 @@ RAGnarok uses a decoupled full-stack architecture:
 
 ## Features
 
-- 🧠 **Multi-Agent RAG**: Instead of just injecting context, the agent autonomously decides when to query the "Short-term" database (announcements), the "Long-term" database (static campus info), or fall back to live Web Search via DuckDuckGo.
-- ⚡ **Real-time Streaming**: LLM tokens are streamed directly to the UI using SSE for immediate responsiveness.
-- 🛡️ **Custom OTP Auth**: Students sign up using their `@iitrpr.ac.in` emails. A 6-digit OTP is generated via Redis and emailed via standard SMTP to verify the account before it is registered in Supabase.
-- 📱 **Progressive Web App**: Fully installable on iOS and Android with a native app-like experience.
-- 🛠️ **Admin Dashboard**: Dedicated portal (`/admin`) to upload JSON context, trigger background Celery ingestion tasks, and manage system configuration.
+- ðŸ§  **Multi-Agent RAG**: Instead of just injecting context, the agent autonomously decides when to query the "Short-term" database (announcements), the "Long-term" database (static campus info), or fall back to live Web Search via DuckDuckGo.
+- âš¡ **Real-time Streaming**: LLM tokens are streamed directly to the UI using SSE for immediate responsiveness.
+- ðŸ›¡ï¸ **Custom OTP Auth**: Students sign up using their `@iitrpr.ac.in` emails. A 6-digit OTP is generated via Redis and emailed via standard SMTP to verify the account before it is registered in Supabase.
+- ðŸ“± **Progressive Web App**: Fully installable on iOS and Android with a native app-like experience.
+- ðŸ› ï¸ **Admin Dashboard**: Dedicated portal (`/admin`) to upload JSON context, trigger background Celery ingestion tasks, and manage system configuration.
 
 ## Setup Instructions
 
