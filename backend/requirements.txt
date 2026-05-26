@@ -1,4 +1,4 @@
-﻿amqp==5.3.1
+amqp==5.3.1
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.13.0
@@ -87,7 +87,7 @@ python-dotenv==1.2.2
 python-jose==3.5.0
 python-multipart==0.0.29
 pytz==2026.2
-pywin32==311
+
 PyYAML==6.0.3
 qdrant-client==1.18.0
 realtime==2.30.0
