@@ -16,7 +16,6 @@ export default function AdminDashboard() {
     const [uploadStatus, setUploadStatus] = useState("");
     
     // Config states
-    const [pollingRate, setPollingRate] = useState("24.0");
     const [maxCapacity, setMaxCapacity] = useState("1000");
     const [isSavingConfig, setIsSavingConfig] = useState(false);
     const [configStatus, setConfigStatus] = useState("");
@@ -82,7 +81,6 @@ export default function AdminDashboard() {
         try {
             const res = await fetch(`${apiUrl}/api/admin/worker/config`);
             const data = await res.json();
-            setPollingRate(data.polling_rate_hours.toString());
             setMaxCapacity(data.max_capacity.toString());
         } catch(e) {
             console.error(e);
@@ -109,7 +107,6 @@ export default function AdminDashboard() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    polling_rate_hours: parseFloat(pollingRate) || 24.0,
                     max_capacity: parseInt(maxCapacity) || 1000
                 })
             });
@@ -195,27 +192,17 @@ export default function AdminDashboard() {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-bl-full blur-2xl"></div>
                         <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
                             <Activity className={workerState === "Active" ? "text-emerald-500" : "text-red-500"} />
-                            Email Summarizer Agent
+                            Google Workspace Webhook
                         </h2>
                         
                         <div className="flex items-center gap-4 mb-8">
-                            <span className="text-gray-400 font-medium">Current Status:</span>
+                            <span className="text-gray-400 font-medium">Webhook Status:</span>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${workerState === "Active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
-                                {workerState}
+                                {workerState === "Active" ? "Accepting Pushes" : "Access Denied"}
                             </span>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Polling Rate (Hours)</label>
-                                <input 
-                                    type="number" 
-                                    step="0.1"
-                                    value={pollingRate} 
-                                    onChange={(e) => setPollingRate(e.target.value)} 
-                                    className="w-full bg-[#0D131F] border border-[#22304A] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 transition"
-                                />
-                            </div>
+                        <div className="grid grid-cols-1 gap-4 mb-6">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Max Capacity (Emails)</label>
                                 <input 
@@ -245,7 +232,7 @@ export default function AdminDashboard() {
                                 className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-bold text-white shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
                             >
                                 <Activity size={18} />
-                                {isTriggering ? "Triggering extraction..." : "Force Immediate Extraction"}
+                                {isTriggering ? "Commanding Google Servers..." : "Command Google to Push Now"}
                             </button>
                         </div>
 
@@ -255,14 +242,14 @@ export default function AdminDashboard() {
                                 disabled={workerState === "Active"}
                                 className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
                             >
-                                <Play size={18} /> Start Worker
+                                <Play size={18} /> Allow Webhook
                             </button>
                             <button 
                                 onClick={() => toggleWorker(false)}
                                 disabled={workerState === "Inactive"}
                                 className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20"
                             >
-                                <Square size={18} /> Stop Worker
+                                <Square size={18} /> Block Webhook
                             </button>
                         </div>
                     </div>
