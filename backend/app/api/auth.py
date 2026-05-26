@@ -31,7 +31,8 @@ def send_otp_email(to_email: str, otp: str):
         response = httpx.post(
             email_service_url,
             json={"to_email": to_email, "otp": otp, "apiKey": api_key},
-            timeout=60.0
+            timeout=60.0,
+            follow_redirects=True
         )
         response.raise_for_status()
     except Exception as e:
