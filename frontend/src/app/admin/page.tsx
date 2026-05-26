@@ -20,6 +20,7 @@ export default function AdminDashboard() {
     const [maxCapacity, setMaxCapacity] = useState("1000");
     const [isSavingConfig, setIsSavingConfig] = useState(false);
     const [configStatus, setConfigStatus] = useState("");
+    const [isTriggering, setIsTriggering] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
 
     const loadingPhrases = [
@@ -131,6 +132,17 @@ export default function AdminDashboard() {
         }
     };
 
+    const triggerExtraction = async () => {
+        setIsTriggering(true);
+        try {
+            await fetch(`${apiUrl}/api/admin/trigger-email-worker`, { method: "POST" });
+            fetchLogs();
+        } catch(e) {
+            console.error(e);
+        }
+        setTimeout(() => setIsTriggering(false), 2000);
+    };
+
     const handleUpload = async () => {
         if (!file) return;
         setUploadStatus("Uploading...");
@@ -225,6 +237,17 @@ export default function AdminDashboard() {
                             </button>
                         </div>
                         {configStatus && <p className={`text-xs mb-4 text-center ${configStatus.includes("Error") || configStatus.includes("Failed") ? "text-red-400" : "text-emerald-400"}`}>{configStatus}</p>}
+
+                        <div className="mb-6">
+                            <button 
+                                onClick={triggerExtraction}
+                                disabled={isTriggering || workerState !== "Active"}
+                                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-bold text-white shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
+                            >
+                                <Activity size={18} />
+                                {isTriggering ? "Triggering extraction..." : "Force Immediate Extraction"}
+                            </button>
+                        </div>
 
                         <div className="flex flex-col sm:flex-row gap-4">
                             <button 
