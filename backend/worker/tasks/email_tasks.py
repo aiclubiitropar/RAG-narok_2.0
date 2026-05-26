@@ -168,7 +168,9 @@ class EmailScraper:
                             }
             return None
         except Exception as e:
+            import traceback
             logger.error(f"Failed to scrape mess menu: {e}")
+            traceback.print_exc()
             return None
 
 @celery_app.task
