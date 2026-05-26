@@ -25,6 +25,8 @@ class Settings(BaseSettings):
 
     # Emergency Settings
     EMERGENCY_KILL_COMMAND: Optional[str] = os.getenv("EMERGENCY_KILL_COMMAND")
+    ADMIN_PASSWORD: Optional[str] = os.getenv("ADMIN_PASSWORD")
+    APPS_SCRIPT_WEBHOOK_URL: Optional[str] = os.getenv("APPS_SCRIPT_WEBHOOK_URL")
 
     # LLM (Groq) configurations
     GROQ_API_KEYS: str = os.getenv("GROQ_API_KEYS", "") # comma separated list of keys
