@@ -7,6 +7,11 @@ import json
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 from app.tools.retrieval import embeddings
+from fastapi import Depends, Header
+import base64
+from io import BytesIO
+import PyPDF2
+from datetime import datetime
 
 router = APIRouter()
 redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
@@ -138,3 +143,67 @@ def worker_status():
         return {"worker_state": "Active" if status == "True" else "Inactive"}
     except Exception as e:
         return {"worker_state": "Offline (No Redis)"}
+
+class Base64UploadRequest(BaseModel):
+    filename: str
+    base64_data: str
+
+@router.post("/worker/upload-base64-pdf")
+async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    token = authorization.split(" ")[1]
+    if token != settings.ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Invalid admin password")
+
+    if not req.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    try:
+        # Decode base64 to bytes
+        pdf_bytes = base64.b64decode(req.base64_data)
+        
+        # Extract text using PyPDF2
+        pdf_reader = PyPDF2.PdfReader(BytesIO(pdf_bytes))
+        extracted_text = ""
+        for page in pdf_reader.pages:
+            text = page.extract_text()
+            if text:
+                extracted_text += text + "\n"
+                
+        if not extracted_text.strip():
+            raise HTTPException(status_code=400, detail="Could not extract any text from the PDF. It may be image-based.")
+
+        # Log it to Redis so it appears in the UI
+        log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] Apps Script pushed {req.filename}. Extracted {len(extracted_text)} chars."
+        try:
+            redis_client.lpush("email_worker_logs", log_msg)
+            redis_client.ltrim("email_worker_logs", 0, 99)
+        except:
+            pass
+
+        # Ingest into Qdrant shortterm collection
+        doc = Document(
+            page_content=extracted_text,
+            metadata={"source": req.filename, "type": "mess_menu", "date_processed": datetime.now().isoformat()}
+        )
+        
+        QdrantVectorStore.from_documents(
+            [doc],
+            embeddings,
+            url=settings.QDRANT_URL,
+            api_key=settings.QDRANT_API_KEY,
+            collection_name=settings.QDRANT_SHORTTERM_COLLECTION,
+            force_recreate=False
+        )
+        
+        return {"status": "success", "message": f"Successfully ingested {req.filename}"}
+        
+    except Exception as e:
+        error_msg = f"Failed to process PDF: {str(e)}"
+        try:
+            redis_client.lpush("email_worker_logs", f"[{datetime.now().strftime('%H:%M:%S')}] ERROR: {error_msg}")
+        except:
+            pass
+        raise HTTPException(status_code=500, detail=error_msg)
