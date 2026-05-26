@@ -111,11 +111,12 @@ def start_worker():
         redis_client.set("email_worker_last_run", "0") # Reset timer to allow immediate run
         
         # Push initial log so UI updates instantly
-        from worker.tasks.email_tasks import push_log, fetch_and_summarize_emails
+        from worker.tasks.email_tasks import push_log, fetch_and_summarize_emails, fetch_and_process_mess_menu
         push_log(redis_client, "Worker started. Forcing immediate email extraction...")
         
-        # Trigger Celery task immediately
+        # Trigger Celery tasks immediately
         fetch_and_summarize_emails.delay()
+        fetch_and_process_mess_menu.delay()
         
         return {"status": "success", "worker_state": "Active"}
     except Exception as e:
