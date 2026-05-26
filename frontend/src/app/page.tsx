@@ -655,9 +655,9 @@ export default function Home() {
             </div>
           ) : (
             // Chat Feed
-            <div className="p-4 md:p-8 space-y-8 pb-64 md:pb-80 max-w-4xl mx-auto pt-20">
+            <div className="p-4 md:p-8 space-y-8 pb-64 md:pb-80 max-w-5xl w-full mx-auto pt-20">
               {messages.map((msg) => (
-                <div key={msg.id} className={`flex gap-4 md:gap-6 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                <div key={msg.id} className={`flex w-full gap-4 md:gap-6 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md relative overflow-hidden ${msg.role === "user" ? "bg-gradient-to-br from-indigo-500 to-purple-600 border border-indigo-400/30" : "bg-[#141C2B] border border-[#22304A]"}`}>
                     {msg.role === "user" ? (
                       <span className="text-white text-sm font-bold">{username.substring(0, 2).toUpperCase()}</span>
@@ -665,7 +665,7 @@ export default function Home() {
                       <Image src="/RAG_logo.png" alt="Bot Logo" fill sizes="40px" className="object-cover scale-110" />
                     )}
                   </div>
-                  <div className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                  <div className={`flex flex-col flex-1 min-w-0 ${msg.role === "user" ? "items-end" : "items-start"}`}>
                     <div className="flex items-center gap-2 mb-1.5 px-1">
                       <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                         {msg.role === "user" ? "You" : msg.agent || "RAGnarok"}
@@ -674,7 +674,7 @@ export default function Home() {
                          <span className="flex h-2 w-2 rounded-full bg-[#FBBF24]"></span>
                       )}
                     </div>
-                    <div className={`p-5 rounded-2xl shadow-sm max-w-[100%] w-full overflow-x-auto ${
+                    <div className={`p-4 md:p-5 rounded-2xl shadow-sm w-fit max-w-[95%] md:max-w-[85%] overflow-x-auto ${
                       msg.role === "user" 
                         ? "bg-indigo-600 text-white rounded-tr-sm" 
                         : isDarkMode ? "bg-[#141C2B] border border-[#22304A] text-gray-200 rounded-tl-sm" : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm"
