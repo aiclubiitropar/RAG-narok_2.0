@@ -122,39 +122,46 @@ class EmailScraper:
                 return None
                 
             email_ids = messages[0].split()
-            e_id = email_ids[-1] # Most recent
-            status, msg_data = self.mail.fetch(e_id, "(RFC822)")
             
-            for response_part in msg_data:
-                if isinstance(response_part, tuple):
-                    msg = email.message_from_bytes(response_part[1])
-                    subject, encoding = decode_header(msg["Subject"])[0]
-                    if isinstance(subject, bytes):
-                        subject = subject.decode(encoding if encoding else "utf-8")
-                    
-                    date = msg.get("Date")
-                    attachments_text = ""
-                    if msg.is_multipart():
-                        for part in msg.walk():
-                            content_disposition = str(part.get("Content-Disposition"))
-                            if "attachment" in content_disposition:
-                                filename = part.get_filename()
-                                if filename and filename.lower().endswith('.pdf'):
-                                    payload = part.get_payload(decode=True)
-                                    try:
-                                        pdf_reader = PyPDF2.PdfReader(BytesIO(payload))
-                                        for page in pdf_reader.pages:
-                                            attachments_text += page.extract_text() + "\n"
-                                    except Exception as e:
-                                        logger.error(f"Failed to read Mess Menu PDF attachment: {e}")
-                    
-                    if attachments_text:
-                        return {
-                            "id": str(e_id),
-                            "subject": subject,
-                            "date": date,
-                            "attachments_text": attachments_text
-                        }
+            # Iterate backwards (newest to oldest) to find the latest one WITH a PDF
+            for e_id in reversed(email_ids):
+                status, msg_data = self.mail.fetch(e_id, "(RFC822)")
+                
+                for response_part in msg_data:
+                    if isinstance(response_part, tuple):
+                        msg = email.message_from_bytes(response_part[1])
+                        subject, encoding = decode_header(msg.get("Subject", ""))[0]
+                        if isinstance(subject, bytes):
+                            try:
+                                subject = subject.decode(encoding if encoding else "utf-8")
+                            except:
+                                subject = str(subject)
+                        
+                        date = msg.get("Date")
+                        attachments_text = ""
+                        if msg.is_multipart():
+                            for part in msg.walk():
+                                content_disposition = str(part.get("Content-Disposition"))
+                                if "attachment" in content_disposition:
+                                    filename = part.get_filename()
+                                    if filename and filename.lower().endswith('.pdf'):
+                                        payload = part.get_payload(decode=True)
+                                        try:
+                                            pdf_reader = PyPDF2.PdfReader(BytesIO(payload))
+                                            for page in pdf_reader.pages:
+                                                extracted = page.extract_text()
+                                                if extracted:
+                                                    attachments_text += extracted + "\n"
+                                        except Exception as e:
+                                            logger.error(f"Failed to read Mess Menu PDF attachment: {e}")
+                        
+                        if attachments_text.strip():
+                            return {
+                                "id": str(e_id.decode()),
+                                "subject": subject,
+                                "date": date,
+                                "attachments_text": attachments_text
+                            }
             return None
         except Exception as e:
             logger.error(f"Failed to scrape mess menu: {e}")
