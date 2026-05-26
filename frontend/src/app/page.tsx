@@ -9,6 +9,9 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -679,9 +682,10 @@ export default function Home() {
                         ? "bg-indigo-600 text-white rounded-tr-sm" 
                         : isDarkMode ? "bg-[#141C2B] border border-[#22304A] text-gray-200 rounded-tl-sm" : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm"
                     }`}>
-                      <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert prose-p:leading-relaxed prose-pre:p-0 prose-pre:m-0 prose-pre:bg-transparent">
+                      <div className={`prose prose-sm md:prose-base max-w-none ${msg.role === "user" ? "prose-invert prose-p:text-white" : isDarkMode ? "prose-invert" : ""} prose-p:leading-relaxed prose-pre:p-0 prose-pre:m-0 prose-pre:bg-transparent`}>
                         <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]}
+                          remarkPlugins={[remarkGfm, remarkMath]}
+                          rehypePlugins={[rehypeKatex]}
                           components={{
                             code: CodeBlock as any,
                             table: ({node, ...props}) => <div className="overflow-x-auto my-4"><table className="min-w-full divide-y divide-gray-700/50" {...props} /></div>,
