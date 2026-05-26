@@ -12,17 +12,35 @@ import base64
 from io import BytesIO
 import PyPDF2
 from datetime import datetime
+from app.core.llm import get_groq_llm
+from langchain_core.messages import HumanMessage
+from qdrant_client import QdrantClient
+from typing import List
+import httpx
+import time
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
 @router.post("/trigger-email-worker")
 def trigger_email_worker():
-    """Manually trigger the Celery worker to fetch and summarize emails and mess menu."""
+    """Manually trigger the Google Apps Script Webhook to push emails to the backend."""
     redis_client.delete("last_processed_mess_menu_id")
-    task1 = fetch_and_summarize_emails.delay()
-    task2 = fetch_and_process_mess_menu.delay()
-    return {"status": "Tasks dispatched", "task_id_emails": task1.id, "task_id_mess_menu": task2.id}
+    
+    webhook_url = settings.APPS_SCRIPT_WEBHOOK_URL if hasattr(settings, 'APPS_SCRIPT_WEBHOOK_URL') else os.getenv("APPS_SCRIPT_WEBHOOK_URL")
+    if not webhook_url:
+        return {"status": "error", "message": "APPS_SCRIPT_WEBHOOK_URL is not configured in .env"}
+        
+    try:
+        # Send an HTTP GET to the Google Apps Script Web App to trigger it
+        httpx.get(webhook_url, timeout=10.0)
+        return {"status": "Success", "message": "Triggered Google Apps Script Webhook. Check logs in a few moments."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to trigger Webhook: {str(e)}")
 
 class WorkerConfig(BaseModel):
     polling_rate_hours: float
@@ -117,12 +135,8 @@ def start_worker():
         redis_client.set("email_worker_last_run", "0") # Reset timer to allow immediate run
         
         # Push initial log so UI updates instantly
-        from worker.tasks.email_tasks import push_log, fetch_and_summarize_emails, fetch_and_process_mess_menu
-        push_log(redis_client, "Worker started. Forcing immediate email extraction...")
-        
-        # Trigger Celery tasks immediately
-        fetch_and_summarize_emails.delay()
-        fetch_and_process_mess_menu.delay()
+        from worker.tasks.email_tasks import push_log
+        push_log(redis_client, "Webhook started. Command Center enabled.")
         
         return {"status": "success", "worker_state": "Active"}
     except Exception as e:
@@ -150,6 +164,9 @@ class Base64UploadRequest(BaseModel):
 
 @router.post("/worker/upload-base64-pdf")
 async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Header(None)):
+    if redis_client.get("email_worker_active") != "True":
+        raise HTTPException(status_code=403, detail="Worker is stopped in Command Center.")
+        
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized")
     
@@ -204,6 +221,94 @@ async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Heade
         error_msg = f"Failed to process PDF: {str(e)}"
         try:
             redis_client.lpush("email_worker_logs", f"[{datetime.now().strftime('%H:%M:%S')}] ERROR: {error_msg}")
+        except:
+            pass
+        raise HTTPException(status_code=500, detail=error_msg)
+
+class EmailItem(BaseModel):
+    id: str
+    subject: str
+    sender: str
+    date: str
+    body: str
+
+class EmailUploadRequest(BaseModel):
+    emails: List[EmailItem]
+
+@router.post("/worker/upload-emails")
+async def upload_emails(req: EmailUploadRequest, authorization: str = Header(None)):
+    if redis_client.get("email_worker_active") != "True":
+        raise HTTPException(status_code=403, detail="Worker is stopped in Command Center.")
+        
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    token = authorization.split(" ")[1]
+    if token != settings.ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Invalid admin password")
+
+    if not req.emails:
+        return {"status": "success", "message": "No new emails provided."}
+
+    try:
+        from worker.tasks.email_tasks import push_log
+        push_log(redis_client, f"Apps Script pushed {len(req.emails)} unread email(s). Summarizing...")
+        
+        docs = []
+        for em in req.emails:
+            llm = get_groq_llm()
+            prompt = f"Summarize the following email body into a concise, informative paragraph for an AI assistant's memory. CRITICAL: If the email contains any tabular data, schedules, or structured lists, you MUST preserve and format them accurately as Markdown tables or lists below your summary paragraph.\n\nEmail Body:\n{em.body}"
+            
+            response = llm.invoke([HumanMessage(content=prompt)])
+            summary = response.content.strip()
+
+            page_content = f"Date: {em.date}\nFrom: {em.sender}\nSubject: {em.subject}\nSummary: {summary}"
+            docs.append(Document(
+                page_content=page_content,
+                metadata={"source": "email", "id": em.id, "timestamp": time.time()}
+            ))
+            
+            # Show summary directly in the frontend logs!
+            push_log(redis_client, f"Ingested email: {em.subject} - Summary: {summary[:150]}...")
+
+        if docs:
+            QdrantVectorStore.from_documents(
+                docs,
+                embeddings,
+                url=settings.QDRANT_URL,
+                api_key=settings.QDRANT_API_KEY,
+                collection_name=settings.QDRANT_SHORTTERM_COLLECTION,
+                force_recreate=False
+            )
+            push_log(redis_client, f"Successfully embedded {len(docs)} new emails to shortterm_db.")
+            
+            # FIFO Cleanup Logic
+            try:
+                max_capacity = int(redis_client.get("email_worker_max_capacity") or 1000)
+                q_client = QdrantClient(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
+                count_result = q_client.count(collection_name=settings.QDRANT_SHORTTERM_COLLECTION)
+                
+                if count_result.count > max_capacity:
+                    excess = count_result.count - max_capacity
+                    logger.info(f"Capacity exceeded ({count_result.count} > {max_capacity}). Deleting {excess} oldest records.")
+                    
+                    records, _ = q_client.scroll(collection_name=settings.QDRANT_SHORTTERM_COLLECTION, limit=10000, with_payload=True)
+                    sorted_records = sorted(records, key=lambda x: x.payload.get("metadata", {}).get("timestamp", 0))
+                    to_delete = [r.id for r in sorted_records[:excess]]
+                    
+                    if to_delete:
+                        q_client.delete(collection_name=settings.QDRANT_SHORTTERM_COLLECTION, points_selector=to_delete)
+                        push_log(redis_client, f"Capacity exceeded. Deleted {len(to_delete)} oldest emails.")
+            except Exception as qc_err:
+                push_log(redis_client, f"Failed to enforce capacity: {qc_err}")
+
+        return {"status": "success", "message": f"Processed {len(docs)} emails."}
+        
+    except Exception as e:
+        error_msg = f"Failed to process emails: {str(e)}"
+        try:
+            from worker.tasks.email_tasks import push_log
+            push_log(redis_client, f"ERROR: {error_msg}")
         except:
             pass
         raise HTTPException(status_code=500, detail=error_msg)
