@@ -126,7 +126,9 @@ def reset_password(req: PasswordReset):
         supabase_admin.auth.admin.update_user_by_id(target_uid, {"password": req.new_password})
     except Exception as e:
         print(f"Error updating password: {e}")
-        raise HTTPException(status_code=500, detail="Failed to reset password.")
+        # Strip any internal traceback if present, but pass the Supabase API error message
+        error_msg = str(e)
+        raise HTTPException(status_code=400, detail=f"Failed to reset password: {error_msg}")
         
     # 5. Clean up OTP on success
     redis_client.delete(f"otp:{email}")

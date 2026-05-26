@@ -63,6 +63,11 @@ export default function LoginPage() {
             setIsLoading(false);
             return;
           }
+          if (password.length < 6) {
+            setError("Password must be at least 6 characters long.");
+            setIsLoading(false);
+            return;
+          }
           if (password !== confirmPassword) {
             setError("Passwords do not match.");
             setIsLoading(false);
@@ -122,6 +127,12 @@ export default function LoginPage() {
           // Enforce @iitrpr.ac.in domain for students
           if (!email.endsWith('@iitrpr.ac.in')) {
             setError("Only @iitrpr.ac.in accounts are permitted to access RAGnarok.");
+            setIsLoading(false);
+            return;
+          }
+
+          if (password.length < 6) {
+            setError("Password must be at least 6 characters long.");
             setIsLoading(false);
             return;
           }
