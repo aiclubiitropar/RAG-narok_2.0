@@ -18,7 +18,7 @@ class GradioEmbeddings(Embeddings):
     @property
     def client(self):
         if self._client is None:
-            self._client = Client("IotaCluster/embedding-model", hf_token=settings.HF_TOKEN)
+            self._client = Client("IotaCluster/embedding-model", token=settings.HF_TOKEN)
         return self._client
 
     def _extract_embedding(self, result) -> list[float]:
