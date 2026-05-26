@@ -13,7 +13,13 @@ import json
 
 class GradioEmbeddings(Embeddings):
     def __init__(self):
-        self.client = Client("IotaCluster/embedding-model")
+        self._client = None
+
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = Client("IotaCluster/embedding-model")
+        return self._client
 
     def _extract_embedding(self, result) -> list[float]:
         if isinstance(result, str):
