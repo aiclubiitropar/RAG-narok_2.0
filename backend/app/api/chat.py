@@ -7,6 +7,8 @@ from langchain_core.messages import HumanMessage
 from app.agents.graph import app_graph
 from app.memory.mem0_manager import add_user_memory, get_user_memory
 from app.api.deps import get_current_user
+from app.core.config import settings
+from huggingface_hub import HfApi
 
 router = APIRouter()
 
@@ -24,6 +26,25 @@ import json
 
 @router.post("/chat/stream")
 async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depends(get_current_user)):
+    # Emergency Kill Switch
+    if settings.EMERGENCY_KILL_COMMAND and request.message.strip() == settings.EMERGENCY_KILL_COMMAND:
+        async def kill_generator():
+            yield f"data: {json.dumps({'chunk': '🚨 EMERGENCY STOP ACTIVATED. Pausing Hugging Face Space...'})}\n\n"
+            yield f"data: {json.dumps({'route_taken': 'system'})}\n\n"
+            try:
+                # Pause the space asynchronously to allow the message to stream first
+                import threading
+                def pause_space():
+                    try:
+                        api = HfApi(token=settings.HF_TOKEN)
+                        api.pause_space(repo_id=settings.HF_REPO_ID)
+                    except Exception as e:
+                        print(f"Failed to pause space: {e}")
+                threading.Thread(target=pause_space).start()
+            except Exception:
+                pass
+        return StreamingResponse(kill_generator(), media_type="text/event-stream")
+
     # Retrieve recent episodic memory for context in a separate thread to prevent blocking
     past_memories = await asyncio.to_thread(get_user_memory, current_user_id, request.message)
     context_str = ""
@@ -90,6 +111,18 @@ async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depe
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest, current_user_id: str = Depends(get_current_user)):
+    # Emergency Kill Switch
+    if settings.EMERGENCY_KILL_COMMAND and request.message.strip() == settings.EMERGENCY_KILL_COMMAND:
+        import threading
+        def pause_space():
+            try:
+                api = HfApi(token=settings.HF_TOKEN)
+                api.pause_space(repo_id=settings.HF_REPO_ID)
+            except Exception as e:
+                print(f"Failed to pause space: {e}")
+        threading.Thread(target=pause_space).start()
+        return ChatResponse(reply="🚨 EMERGENCY STOP ACTIVATED. Pausing Hugging Face Space...", route_taken="system")
+
     # Fallback non-streaming endpoint
     # Retrieve recent episodic memory for context in a separate thread
     past_memories = await asyncio.to_thread(get_user_memory, current_user_id, request.message)
