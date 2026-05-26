@@ -256,7 +256,7 @@ def fetch_and_summarize_emails():
         
         for em in emails:
             llm = get_groq_llm()
-            prompt = f"Summarize the following email body into a concise, informative paragraph for an AI assistant's memory: {em['body']}"
+            prompt = f"Summarize the following email body into a concise, informative paragraph for an AI assistant's memory. CRITICAL: If the email contains any tabular data, schedules, or structured lists, you MUST preserve and format them accurately as Markdown tables or lists below your summary paragraph.\n\nEmail Body:\n{em['body']}"
             response = llm.invoke([HumanMessage(content=prompt)])
             summary = response.content.strip()
 
