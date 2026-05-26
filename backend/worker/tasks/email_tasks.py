@@ -11,6 +11,15 @@ import email
 from email.header import decode_header
 import redis
 import time
+import socket
+
+# Force IPv4 globally for this worker to prevent "Network is unreachable" IPv6 timeouts on Hugging Face
+old_getaddrinfo = socket.getaddrinfo
+def new_getaddrinfo(*args, **kwargs):
+    responses = old_getaddrinfo(*args, **kwargs)
+    return [response for response in responses if response[0] == socket.AF_INET]
+socket.getaddrinfo = new_getaddrinfo
+
 import PyPDF2
 from io import BytesIO
 from qdrant_client import QdrantClient
