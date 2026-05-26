@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # Emergency Settings
     EMERGENCY_KILL_COMMAND: Optional[str] = os.getenv("EMERGENCY_KILL_COMMAND")
-    ADMIN_PASSWORD: Optional[str] = os.getenv("ADMIN_PASSWORD")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "123456789")
     APPS_SCRIPT_WEBHOOK_URL: Optional[str] = os.getenv("APPS_SCRIPT_WEBHOOK_URL")
 
     # LLM (Groq) configurations
