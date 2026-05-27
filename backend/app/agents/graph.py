@@ -2,7 +2,7 @@ from typing import Annotated, Sequence, TypedDict
 import operator
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langgraph.graph import StateGraph, END
-from app.core.llm import get_groq_llm
+from app.core.llm import get_llm
 from datetime import datetime, timezone, timedelta
 
 class AgentState(TypedDict):
@@ -31,7 +31,7 @@ def single_agent_node(state: AgentState):
     total_chars = sum(len(str(m.content)) for m in state["messages"]) if state.get("messages") else 0
     estimated_tokens = (total_chars // 4) + 800
     
-    llm = get_groq_llm(estimated_tokens=estimated_tokens)
+    llm = get_llm(estimated_tokens=estimated_tokens)
     
     examples = """
 Examples of how to act:
