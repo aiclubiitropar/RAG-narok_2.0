@@ -55,6 +55,11 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
             
     if model_name.startswith("gemini"):
         api_key = gemini_key_manager.get_random_key()
+        if use_sum_key:
+            sum_key = os.getenv("GEM_SUM")
+            if sum_key and sum_key.strip():
+                api_key = sum_key.strip()
+                
         return ChatGoogleGenerativeAI(
             api_key=api_key,
             model=model_name,
