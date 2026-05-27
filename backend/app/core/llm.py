@@ -42,16 +42,26 @@ gemini_key_manager = GeminiKeyManager()
 def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: bool = False, estimated_tokens: int = 0):
     """Returns an LLM instance using a randomly selected API key and model to handle high traffic."""
     
-    if model_name == "rotate":
+    if use_sum_key:
+        model_name = random.choice(["gemma-4-26b", "gemma-4-31b"])
+    elif model_name == "rotate":
+        gemini_models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite"]
+        
         if estimated_tokens > 12000:
             # Groq's max limit is 12K. Exceeding this routes purely to Gemini (1M TPM)
-            model_name = random.choice(["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite"])
+            model_name = random.choice(gemini_models)
         elif estimated_tokens > 8000:
-            model_name = random.choice(["llama-3.3-70b-versatile", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite"])
+            models = ["llama-3.3-70b-versatile", "gemma-4-31b"] + gemini_models
+            weights = [3, 3] + [1] * len(gemini_models)
+            model_name = random.choices(models, weights=weights, k=1)[0]
         elif estimated_tokens > 3000:
-            model_name = random.choice(["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite"])
+            models = ["llama-3.3-70b-versatile", "gemma-4-26b", "gemma-4-31b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
+            weights = [3, 3, 3, 1, 1] + [1] * len(gemini_models)
+            model_name = random.choices(models, weights=weights, k=1)[0]
         else:
-            model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3-32b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite"])
+            models = ["llama-3.3-70b-versatile", "gemma-4-26b", "gemma-4-31b", "qwen/qwen3-32b", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
+            weights = [3, 3, 3, 3, 1, 1, 1] + [1] * len(gemini_models)
+            model_name = random.choices(models, weights=weights, k=1)[0]
             
     if model_name.startswith("gemini"):
         api_key = gemini_key_manager.get_random_key()
