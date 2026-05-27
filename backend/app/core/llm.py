@@ -36,7 +36,7 @@ def get_groq_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_k
             api_key = sum_key.strip()
             
     if model_name == "rotate":
-        model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen2.5-32b-it"])
+        model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen3-32b","openai/gpt-oss-120b","openai/gpt-oss-20b"])
             
     return ChatGroq(
         api_key=api_key,

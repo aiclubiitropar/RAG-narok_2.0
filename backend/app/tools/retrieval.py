@@ -162,12 +162,12 @@ def smart_query(collection_name: str, query_text: str, topk: int = 20, top_l: in
                 merged.append(hit)
                 seen_ids.add(hit['id'])
                 
-        # Limit to top 5 and truncate each document to 1000 chars to prevent Groq TPM limits while ensuring variety
+        # Limit to top 5 but keep the full chunk content as requested
         merged = merged[:5]
-        return "\n\n---\n\n".join([hit['document'][:1000] + ("..." if len(hit['document']) > 1000 else "") for hit in merged]) if merged else "No relevant information found."
+        return "\n\n---\n\n".join([hit['document'] for hit in merged]) if merged else "No relevant information found."
     else:
         hits = hits[:5]
-        return "\n\n---\n\n".join([hit['document'][:1000] + ("..." if len(hit['document']) > 1000 else "") for hit in hits]) if hits else "No relevant information found."
+        return "\n\n---\n\n".join([hit['document'] for hit in hits]) if hits else "No relevant information found."
 
 @tool
 def campus_data(query: str) -> str:
