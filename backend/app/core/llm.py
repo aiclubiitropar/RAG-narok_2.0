@@ -43,7 +43,7 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
     """Returns an LLM instance using a randomly selected API key and model to handle high traffic."""
     
     if use_sum_key:
-        model_name = random.choice(["gemma-4-26b", "gemma-4-31b", "qwen/qwen3-32b"])
+        model_name = random.choice(["qwen/qwen3-32b"])
     elif model_name == "rotate":
         gemini_models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite"]
         
@@ -51,16 +51,16 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
             # Groq's max limit is 12K. Exceeding this routes purely to Gemini (1M TPM)
             model_name = random.choice(gemini_models)
         elif estimated_tokens > 8000:
-            models = ["llama-3.3-70b-versatile", "gemma-4-31b"] + gemini_models
-            weights = [3, 3] + [1] * len(gemini_models)
+            models = ["llama-3.3-70b-versatile"] + gemini_models
+            weights = [3] + [1] * len(gemini_models)
             model_name = random.choices(models, weights=weights, k=1)[0]
         elif estimated_tokens > 3000:
-            models = ["llama-3.3-70b-versatile", "gemma-4-26b", "gemma-4-31b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
-            weights = [3, 3, 3, 1, 1] + [1] * len(gemini_models)
+            models = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
+            weights = [3, 1, 1] + [1] * len(gemini_models)
             model_name = random.choices(models, weights=weights, k=1)[0]
         else:
-            models = ["llama-3.3-70b-versatile", "gemma-4-26b", "gemma-4-31b", "qwen/qwen3-32b", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
-            weights = [3, 3, 3, 3, 1, 1, 1] + [1] * len(gemini_models)
+            models = ["llama-3.3-70b-versatile", "qwen/qwen3-32b", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
+            weights = [3, 3, 1, 1, 1] + [1] * len(gemini_models)
             model_name = random.choices(models, weights=weights, k=1)[0]
             
     if model_name.startswith("gemini"):
