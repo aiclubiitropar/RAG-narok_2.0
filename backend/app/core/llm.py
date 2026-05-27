@@ -43,7 +43,7 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
     """Returns an LLM instance using a randomly selected API key and model to handle high traffic."""
     
     if use_sum_key:
-        model_name = random.choice(["gemma-4-26b", "gemma-4-31b"])
+        model_name = random.choice(["gemma-4-26b", "gemma-4-31b", "qwen/qwen3-32b"])
     elif model_name == "rotate":
         gemini_models = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-lite", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite"]
         
