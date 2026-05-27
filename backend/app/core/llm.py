@@ -48,10 +48,10 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
             model_name = random.choice(["gemini-1.5-flash", "gemini-1.5-pro"])
         elif estimated_tokens > 8000:
             model_name = random.choice(["llama-3.3-70b-versatile", "gemini-1.5-flash", "gemini-1.5-pro"])
-        elif estimated_tokens > 5500:
+        elif estimated_tokens > 3000:
             model_name = random.choice(["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash"])
         else:
-            model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen3-32b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash"])
+            model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3-32b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash"])
             
     if model_name.startswith("gemini"):
         api_key = gemini_key_manager.get_random_key()
