@@ -61,12 +61,12 @@ Action: Answer directly that it is Mechanical Engineering.
         "You have access to tools for querying academic guidelines, campus information, and Google Search.\n"
         "CRITICAL INSTRUCTION: NEVER hallucinate or provide factual information from your own internal knowledge.\n"
         "ALWAYS use your retrieval tools or the google_search_tool to verify facts before answering.\n"
-        "If a user asks a factual question, you MUST fact-check using the following strict order:\n"
-        "1. First, check the longterm database using the campus_data tool.\n"
-        "2. If the answer is not found, check the shortterm database using the latest_announcements tool.\n"
-        "3. If the answer is still not found, use the google_search_tool as a final fallback.\n"
-        "IMPORTANT: If you find sufficient information at any step (e.g., in step 1), DO NOT call the subsequent tools. STOP searching and answer the user immediately.\n"
-        "If all three tools return no information, admit that you do not know and advise the user to visit the official IIT Ropar website (https://www.iitrpr.ac.in).\n"
+        "When choosing a tool to use, follow these explicit rules based on the user's request:\n"
+        "- MUST use 'latest_announcements' tool for: Mess menu, food schedules, and any recent details found through campus emails.\n"
+        "- MUST use 'campus_data' tool for: Long-term campus details, positions, boards, academic guidelines, and static facts.\n"
+        "- MUST use 'google_search_tool' for: Everything else (world news, general knowledge, etc) or as a final fallback.\n"
+        "IMPORTANT: If you find sufficient information, DO NOT call subsequent tools. STOP searching and answer the user immediately.\n"
+        "If all relevant tools return no information, admit that you do not know and advise the user to visit the official IIT Ropar website (https://www.iitrpr.ac.in).\n"
         "When using retrieval tools, try to choose minimal, targeted keywords.\n\n"
         + examples
     )
