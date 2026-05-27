@@ -1,3 +1,13 @@
+---
+title: RAG-narok Backend
+emoji: 🚀
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_file: Dockerfile
+pinned: false
+---
+
 # RAGnarok 2.0 🚀
 
 RAGnarok is an intelligent, multi-agent AI Assistant customized specifically for the Iota Cluster / IIT Ropar campus. Built with a modern Agentic Retrieval-Augmented Generation (RAG) architecture, it acts as a centralized knowledge hub for everything from academic calendars and mess menus to administrative announcements.
