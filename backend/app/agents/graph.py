@@ -27,7 +27,11 @@ def get_base_instructions() -> str:
     )
 
 def single_agent_node(state: AgentState):
-    llm = get_groq_llm()
+    # Estimate tokens: ~4 characters per token + 800 tokens for system prompt and tools
+    total_chars = sum(len(str(m.content)) for m in state["messages"]) if state.get("messages") else 0
+    estimated_tokens = (total_chars // 4) + 800
+    
+    llm = get_groq_llm(estimated_tokens=estimated_tokens)
     
     examples = """
 Examples of how to act:

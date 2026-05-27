@@ -26,7 +26,7 @@ class GroqKeyManager:
 
 key_manager = GroqKeyManager()
 
-def get_groq_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: bool = False) -> ChatGroq:
+def get_groq_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: bool = False, estimated_tokens: int = 0) -> ChatGroq:
     """Returns a ChatGroq instance using a randomly selected API key and model to handle high traffic."""
     api_key = key_manager.get_random_key()
     
@@ -36,7 +36,12 @@ def get_groq_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_k
             api_key = sum_key.strip()
             
     if model_name == "rotate":
-        model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen3-32b","openai/gpt-oss-120b","openai/gpt-oss-20b"])
+        if estimated_tokens > 8000:
+            model_name = "llama-3.3-70b-versatile"
+        elif estimated_tokens > 5500:
+            model_name = random.choice(["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b"])
+        else:
+            model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen3-32b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"])
             
     return ChatGroq(
         api_key=api_key,
