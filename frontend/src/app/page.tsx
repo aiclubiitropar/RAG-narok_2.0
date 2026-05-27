@@ -399,6 +399,8 @@ export default function Home() {
                 }
                 if (data.error) {
                   console.error(data.error);
+                  streamedText = "⚠️ **Error:** " + data.error;
+                  setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: streamedText } : m));
                 }
               } catch (e) {}
             }

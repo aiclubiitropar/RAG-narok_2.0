@@ -2,7 +2,12 @@ import os
 import random
 # pyrefly: ignore [missing-import]
 from langchain_groq import ChatGroq
+from langchain_core.globals import set_llm_cache
+from langchain_core.caches import InMemoryCache
 from app.core.config import settings
+
+# Enable in-memory caching for all LLM calls to reduce redundant requests
+set_llm_cache(InMemoryCache())
 
 class GroqKeyManager:
     def __init__(self):
@@ -21,8 +26,8 @@ class GroqKeyManager:
 
 key_manager = GroqKeyManager()
 
-def get_groq_llm(model_name: str = "llama-3.3-70b-versatile", temperature: float = 0.0, use_sum_key: bool = False) -> ChatGroq:
-    """Returns a ChatGroq instance using a randomly selected API key to handle high traffic."""
+def get_groq_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: bool = False) -> ChatGroq:
+    """Returns a ChatGroq instance using a randomly selected API key and model to handle high traffic."""
     api_key = key_manager.get_random_key()
     
     if use_sum_key:
@@ -30,8 +35,12 @@ def get_groq_llm(model_name: str = "llama-3.3-70b-versatile", temperature: float
         if sum_key and sum_key.strip():
             api_key = sum_key.strip()
             
+    if model_name == "rotate":
+        model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant","qwen-2.5-32b"])
+            
     return ChatGroq(
         api_key=api_key,
         model_name=model_name,
         temperature=temperature
     )
+
