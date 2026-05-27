@@ -45,13 +45,13 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
     if model_name == "rotate":
         if estimated_tokens > 12000:
             # Groq's max limit is 12K. Exceeding this routes purely to Gemini (1M TPM)
-            model_name = random.choice(["gemini-1.5-flash", "gemini-1.5-pro"])
+            model_name = random.choice(["gemini-1.5-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-2.0-flash", "gemini-1.5-flash-8b"])
         elif estimated_tokens > 8000:
-            model_name = random.choice(["llama-3.3-70b-versatile", "gemini-1.5-flash", "gemini-1.5-pro"])
+            model_name = random.choice(["llama-3.3-70b-versatile", "gemini-1.5-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-2.0-flash", "gemini-1.5-flash-8b"])
         elif estimated_tokens > 3000:
-            model_name = random.choice(["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash"])
+            model_name = random.choice(["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-2.0-flash", "gemini-1.5-flash-8b"])
         else:
-            model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3-32b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash"])
+            model_name = random.choice(["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3-32b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "gemini-1.5-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-2.0-flash", "gemini-1.5-flash-8b"])
             
     if model_name.startswith("gemini"):
         api_key = gemini_key_manager.get_random_key()
