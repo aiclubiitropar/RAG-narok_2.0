@@ -212,7 +212,7 @@ def fetch_and_process_mess_menu():
     import datetime
     readable_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
     
-    llm = get_llm()
+    llm = get_llm(use_sum_key=True)
     prompt = f"The following is raw text extracted from a Mess Menu PDF sent on {menu_data['date']}. Convert this exact information into a clean, well-formatted Markdown Table. Above the table, add a clear H3 heading stating the Month and Year. Do not include any other conversational text.\n\nRaw Text:\n{menu_data['attachments_text']}"
     
     response = llm.invoke([HumanMessage(content=prompt)])
@@ -277,7 +277,7 @@ def fetch_and_summarize_emails():
         docs = []
         
         for em in emails:
-            llm = get_llm()
+            llm = get_llm(use_sum_key=True)
             prompt = f"Summarize the following email body into a concise, informative paragraph for an AI assistant's memory. CRITICAL: If the email contains any tabular data, schedules, or structured lists, you MUST preserve and format them accurately as Markdown tables or lists below your summary paragraph.\n\nEmail Body:\n{em['body']}"
             response = llm.invoke([HumanMessage(content=prompt)])
             summary = response.content.strip()
