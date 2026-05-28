@@ -68,37 +68,45 @@ def google_search_tool(query: str) -> str:
     have no relevant information, or if you need real-time/global internet information.
     """
     logger.info(f"Querying Google Search for: {query}")
+    
+    # 1. Try Google Custom Search (Primary)
+    google_custom_result = google_search3(query)
+    if not ("Error" in google_custom_result or "Missing API key" in google_custom_result or "No results found" in google_custom_result):
+        return google_custom_result
+        
+    logger.info("Google Custom Search failed or missing keys. Falling back to SerpAPI.")
+    
+    # 2. Try SerpAPI (Fallback 1)
     api_key = os.getenv('SERPAPI_API_KEY')
-    if not api_key:
-        zenserp_result = google_search2(query)
-        if "Zenserp Search Error" in zenserp_result or "No results found" in zenserp_result:
-            return google_search3(query)
+    if api_key:
+        url = "https://serpapi.com/search"
+        params = {
+            'q': query,
+            'api_key': api_key,
+            'engine': 'google',
+            'num': 3
+        }
+        try:
+            resp = requests.get(url, params=params, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            results = data.get('organic_results', [])
+            if results:
+                out = []
+                for r in results[:3]:
+                    title = r.get('title', '')
+                    link = r.get('link', '')
+                    snippet = r.get('snippet', '')
+                    out.append(f"- {title}\n{snippet}\n{link}")
+                return '\n\n'.join(out)
+        except Exception as e:
+            logger.error(f"SerpAPI Error: {e}")
+            
+    logger.info("SerpAPI failed or missing keys. Falling back to Zenserp.")
+            
+    # 3. Try Zenserp (Fallback 2)
+    zenserp_result = google_search2(query)
+    if not ("Error" in zenserp_result or "Missing API key" in zenserp_result or "No results found" in zenserp_result):
         return zenserp_result
-
-    url = "https://serpapi.com/search"
-    params = {
-        'q': query,
-        'api_key': api_key,
-        'engine': 'google',
-        'num': 3
-    }
-    try:
-        resp = requests.get(url, params=params, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        results = data.get('organic_results', [])
-        if not results:
-            return '[Google Search: No results found]'
-        out = []
-        for r in results[:3]:
-            title = r.get('title', '')
-            link = r.get('link', '')
-            snippet = r.get('snippet', '')
-            out.append(f"- {title}\n{snippet}\n{link}")
-        return '\n\n'.join(out)
-    except Exception as e:
-        logger.error(f"SerpAPI Error: {e}")
-        zenserp_result = google_search2(query)
-        if "Zenserp Search Error" in zenserp_result or "No results found" in zenserp_result:
-            return google_search3(query)
-        return zenserp_result
+        
+    return "[Google Search: All engines failed or returned no results]"
