@@ -191,7 +191,7 @@ class Base64UploadRequest(BaseModel):
     base64_data: str
 
 @router.post("/worker/upload-base64-pdf")
-async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Header(None)):
+def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Header(None)):
     if redis_client.get("email_worker_active") != "True":
         raise HTTPException(status_code=403, detail="Worker is stopped in Command Center.")
         
@@ -272,7 +272,7 @@ class EmailUploadRequest(BaseModel):
     emails: List[EmailItem]
 
 @router.post("/worker/upload-emails")
-async def upload_emails(req: EmailUploadRequest, authorization: str = Header(None)):
+def upload_emails(req: EmailUploadRequest, authorization: str = Header(None)):
     if redis_client.get("email_worker_active") != "True":
         raise HTTPException(status_code=403, detail="Worker is stopped in Command Center.")
         
