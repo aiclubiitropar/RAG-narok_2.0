@@ -31,9 +31,9 @@ def trigger_email_worker():
     """Manually trigger the Google Apps Script Webhook to push emails to the backend."""
     redis_client.delete("last_processed_mess_menu_id")
     
-    webhook_url = settings.APPS_SCRIPT_WEBHOOK_URL if hasattr(settings, 'APPS_SCRIPT_WEBHOOK_URL') else os.getenv("APPS_SCRIPT_WEBHOOK_URL")
+    webhook_url = settings.APPS_SCRIPT_WEBHOOK_URL
     if not webhook_url:
-        return {"status": "error", "message": "APPS_SCRIPT_WEBHOOK_URL is not configured in .env"}
+        raise HTTPException(status_code=500, detail="Missing APPS_SCRIPT_WEBHOOK_URL in environment.")
         
     try:
         # Send an HTTP GET to the Google Apps Script Web App to trigger it
@@ -43,7 +43,7 @@ def trigger_email_worker():
         raise HTTPException(status_code=500, detail=f"Failed to trigger Webhook: {str(e)}")
 
 class WorkerConfig(BaseModel):
-    polling_rate_hours: float
+    polling_rate_hours: Optional[float] = 24.0
     max_capacity: int
 
 @router.get("/worker/config")
