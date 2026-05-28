@@ -102,6 +102,14 @@ async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depe
                 
                 if kind == "on_chat_model_stream":
                     chunk = event["data"]["chunk"].content
+                    if isinstance(chunk, list):
+                        chunk_text = ""
+                        for item in chunk:
+                            if isinstance(item, dict) and "text" in item:
+                                chunk_text += item["text"]
+                            elif isinstance(item, str):
+                                chunk_text += item
+                        chunk = chunk_text
                     if chunk:
                         final_reply += chunk
                         yield f"data: {json.dumps({'chunk': chunk})}\n\n"
@@ -169,6 +177,14 @@ async def chat_endpoint(request: ChatRequest, current_user_id: str = Depends(get
         final_state = await app_graph.ainvoke(initial_state)
         # The reply is the last message in the list
         reply = final_state["messages"][-1].content
+        if isinstance(reply, list):
+            reply_text = ""
+            for item in reply:
+                if isinstance(item, dict) and "text" in item:
+                    reply_text += item["text"]
+                elif isinstance(item, str):
+                    reply_text += item
+            reply = reply_text
         
         # Save to memory asynchronously
         await asyncio.to_thread(add_user_memory, current_user_id, f"User: {request.message}\nAssistant: {reply}")
