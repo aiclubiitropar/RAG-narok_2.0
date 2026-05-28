@@ -70,6 +70,7 @@ Action: Answer directly that it is Mechanical Engineering.
         "- MUST use 'google_search_tool' for: Everything else (world news, general knowledge, etc) or as a final fallback.\n"
         "IMPORTANT: If you find sufficient information, DO NOT call subsequent tools. STOP searching and answer the user immediately.\n"
         "If all relevant tools return no information, admit that you do not know and advise the user to visit the official IIT Ropar website (https://www.iitrpr.ac.in).\n"
+        "CRITICAL: You are strictly limited to MAXIMUM 2 tool calls per query. If you do not find the answer after 2 tool calls, you MUST stop and tell the user you cannot find it.\n"
         "When using retrieval tools, try to choose minimal, targeted keywords.\n\n"
         + examples
     )
@@ -78,8 +79,14 @@ Action: Answer directly that it is Mechanical Engineering.
         tools=[campus_data, latest_announcements, google_search_tool],
         prompt=prompt
     )
-    result = await agent.ainvoke({"messages": state["messages"]}, {"recursion_limit": 5})
     
+    try:
+        result = await agent.ainvoke({"messages": state["messages"]}, {"recursion_limit": 6})
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Agent recursion limit hit: {e}")
+        return {"messages": [AIMessage(content="I searched my database extensively but couldn't pinpoint the exact information. Could you try rephrasing or narrowing down your request?")], "next_node": "general_agent"}
+        
     # Check if a tool was called to populate next_node context if needed by frontend
     route = "general_agent"
     last_msg = result["messages"][-1]
