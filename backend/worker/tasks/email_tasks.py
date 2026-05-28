@@ -341,3 +341,54 @@ def fetch_and_summarize_emails():
             
     except Exception as e:
         push_log(redis_client, f"Error in worker task: {e}")
+
+@celery_app.task
+def maintenance_cleanup_task():
+    """
+    Runs in the background to detect and remove duplicate entries in the shortterm_db.
+    Groups by `metadata.id` or `metadata.source` and keeps the latest one.
+    """
+    redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"), decode_responses=True)
+    if redis_client.get("maintenance_worker_active") != "True":
+        return
+        
+    try:
+        q_client = QdrantClient(url=os.getenv("QDRANT_URL"), api_key=os.getenv("QDRANT_API_KEY"))
+        collection_name = os.getenv("QDRANT_SHORTTERM_COLLECTION", "shortterm_db")
+        
+        # Check if collection exists
+        try:
+            q_client.get_collection(collection_name)
+        except Exception:
+            return
+
+        records, _ = q_client.scroll(collection_name=collection_name, limit=10000, with_payload=True)
+        
+        if not records:
+            return
+
+        # Group by ID (emails) or Source (mess menu)
+        groups = {}
+        for r in records:
+            meta = r.payload.get("metadata", {})
+            dedup_key = meta.get("id") or meta.get("source")
+            if dedup_key:
+                if dedup_key not in groups:
+                    groups[dedup_key] = []
+                groups[dedup_key].append(r)
+                
+        to_delete = []
+        for key, items in groups.items():
+            if len(items) > 1:
+                # Sort by timestamp, highest first
+                items.sort(key=lambda x: float(x.payload.get("metadata", {}).get("timestamp", 0)), reverse=True)
+                # Keep the first (latest), delete the rest
+                for duplicate in items[1:]:
+                    to_delete.append(duplicate.id)
+                    
+        if to_delete:
+            q_client.delete(collection_name=collection_name, points_selector=to_delete)
+            push_log(redis_client, f"Maintenance: Deleted {len(to_delete)} duplicate records from shortterm_db.")
+            
+    except Exception as e:
+        push_log(redis_client, f"Maintenance task error: {e}")

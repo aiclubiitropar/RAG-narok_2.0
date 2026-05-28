@@ -158,6 +158,34 @@ def worker_status():
     except Exception as e:
         return {"worker_state": "Offline (No Redis)"}
 
+@router.post("/worker/maintenance/start")
+def start_maintenance_worker():
+    try:
+        redis_client.set("maintenance_worker_active", "True")
+        from worker.tasks.email_tasks import push_log
+        push_log(redis_client, "Maintenance Worker (Deduplication) started.")
+        return {"status": "success", "worker_state": "Active"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start maintenance worker: {e}")
+
+@router.post("/worker/maintenance/stop")
+def stop_maintenance_worker():
+    try:
+        redis_client.set("maintenance_worker_active", "False")
+        from worker.tasks.email_tasks import push_log
+        push_log(redis_client, "Maintenance Worker (Deduplication) stopped.")
+        return {"status": "success", "worker_state": "Inactive"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Redis is not running.")
+
+@router.get("/worker/maintenance/status")
+def maintenance_worker_status():
+    try:
+        status = redis_client.get("maintenance_worker_active")
+        return {"worker_state": "Active" if status == "True" else "Inactive"}
+    except Exception as e:
+        return {"worker_state": "Offline (No Redis)"}
+
 class Base64UploadRequest(BaseModel):
     filename: str
     base64_data: str

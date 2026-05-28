@@ -24,4 +24,8 @@ celery_app.conf.beat_schedule = {
         "task": "worker.tasks.email_tasks.fetch_and_summarize_emails",
         "schedule": 300.0, # 5 minutes
     },
+    "remove-duplicates-every-5-minutes": {
+        "task": "worker.tasks.email_tasks.maintenance_cleanup_task",
+        "schedule": 300.0, # 5 minutes
+    },
 }

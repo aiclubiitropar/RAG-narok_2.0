@@ -12,6 +12,7 @@ export default function AdminDashboard() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [workerState, setWorkerState] = useState("Unknown");
+    const [maintenanceState, setMaintenanceState] = useState("Unknown");
     const [file, setFile] = useState<File | null>(null);
     const [uploadStatus, setUploadStatus] = useState("");
     
@@ -72,6 +73,10 @@ export default function AdminDashboard() {
             const res = await fetch(`${apiUrl}/api/admin/worker/status`);
             const data = await res.json();
             setWorkerState(data.worker_state);
+            
+            const mRes = await fetch(`${apiUrl}/api/admin/worker/maintenance/status`);
+            const mData = await mRes.json();
+            setMaintenanceState(mData.worker_state);
         } catch(e) {
             console.error(e);
         }
@@ -123,6 +128,16 @@ export default function AdminDashboard() {
         const endpoint = start ? "start" : "stop";
         try {
             await fetch(`${apiUrl}/api/admin/worker/${endpoint}`, { method: "POST" });
+            fetchWorkerStatus();
+        } catch(e) {
+            console.error(e);
+        }
+    };
+
+    const toggleMaintenanceWorker = async (start: boolean) => {
+        const endpoint = start ? "start" : "stop";
+        try {
+            await fetch(`${apiUrl}/api/admin/worker/maintenance/${endpoint}`, { method: "POST" });
             fetchWorkerStatus();
         } catch(e) {
             console.error(e);
@@ -252,7 +267,43 @@ export default function AdminDashboard() {
                                 <Square size={18} /> Block Webhook
                             </button>
                         </div>
-                    </div>
+                        </div>
+
+                        {/* Maintenance Worker Control */}
+                        <div className="bg-[#141C2B] border border-[#22304A] rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                            <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
+                                <Server className={maintenanceState === "Active" ? "text-emerald-500" : "text-red-500"} />
+                                Maintenance Worker (Deduplication)
+                            </h2>
+                            
+                            <div className="flex items-center gap-4 mb-8">
+                                <span className="text-gray-400 font-medium">Status:</span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${maintenanceState === "Active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+                                    {maintenanceState === "Active" ? "Running" : "Stopped"}
+                                </span>
+                            </div>
+                            
+                            <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+                                This worker runs every 5 minutes in the background to find and remove duplicate entries in the Short-Term Database, keeping only the most recent copies.
+                            </p>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <button 
+                                    onClick={() => toggleMaintenanceWorker(true)}
+                                    disabled={maintenanceState === "Active"}
+                                    className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                                >
+                                    <Play size={18} /> Start Maintenance
+                                </button>
+                                <button 
+                                    onClick={() => toggleMaintenanceWorker(false)}
+                                    disabled={maintenanceState === "Inactive"}
+                                    className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20"
+                                >
+                                    <Square size={18} /> Stop Maintenance
+                                </button>
+                            </div>
+                        </div>
 
                     {/* JSON Upload */}
                     <div className="bg-[#141C2B] border border-[#22304A] rounded-2xl p-6 shadow-xl relative overflow-hidden">
