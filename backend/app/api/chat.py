@@ -5,7 +5,6 @@ from typing import List, Optional
 # pyrefly: ignore [missing-import]
 from langchain_core.messages import HumanMessage
 from app.agents.graph import app_graph
-from app.memory.mem0_manager import add_user_memory, get_user_memory
 from app.api.deps import get_current_user
 from app.core.config import settings
 from huggingface_hub import HfApi
@@ -45,19 +44,7 @@ async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depe
                 pass
         return StreamingResponse(kill_generator(), media_type="text/event-stream")
 
-    # Retrieve recent episodic memory for context in a separate thread to prevent blocking
-    past_memories = await asyncio.to_thread(get_user_memory, current_user_id, request.message)
-    context_str = ""
-    if past_memories:
-        memories_list = past_memories.get("results", past_memories.get("memories", [])) if isinstance(past_memories, dict) else past_memories
-        if isinstance(memories_list, list):
-            texts = [m.get("memory", m.get("text", str(m))) if isinstance(m, dict) else str(m) for m in memories_list]
-            context_str = "\n".join(texts)
-    
-    # Construct input with memory context if any
     input_text = request.message
-    if context_str:
-        input_text = f"Context from previous conversations:\n{context_str}\n\nUser: {request.message}"
     
     # Build messages list from history
     msgs = []
@@ -114,8 +101,6 @@ async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depe
                         final_reply += chunk
                         yield f"data: {json.dumps({'chunk': chunk})}\n\n"
             
-            # Save to memory asynchronously without blocking the event loop
-            await asyncio.to_thread(add_user_memory, current_user_id, f"User: {request.message}\nAssistant: {final_reply}")
             
             # Yield the final route metadata
             yield f"data: {json.dumps({'route_taken': route_taken})}\n\n"
@@ -140,19 +125,7 @@ async def chat_endpoint(request: ChatRequest, current_user_id: str = Depends(get
         return ChatResponse(reply="🚨 EMERGENCY STOP ACTIVATED. Pausing Hugging Face Space...", route_taken="system")
 
     # Fallback non-streaming endpoint
-    # Retrieve recent episodic memory for context in a separate thread
-    past_memories = await asyncio.to_thread(get_user_memory, current_user_id, request.message)
-    context_str = ""
-    if past_memories:
-        memories_list = past_memories.get("results", past_memories.get("memories", [])) if isinstance(past_memories, dict) else past_memories
-        if isinstance(memories_list, list):
-            texts = [m.get("memory", m.get("text", str(m))) if isinstance(m, dict) else str(m) for m in memories_list]
-            context_str = "\n".join(texts)
-    
-    # Construct input with memory context if any
     input_text = request.message
-    if context_str:
-        input_text = f"Context from previous conversations:\n{context_str}\n\nUser: {request.message}"
     
     # Build messages list from history
     msgs = []
@@ -186,8 +159,6 @@ async def chat_endpoint(request: ChatRequest, current_user_id: str = Depends(get
                     reply_text += item
             reply = reply_text
         
-        # Save to memory asynchronously
-        await asyncio.to_thread(add_user_memory, current_user_id, f"User: {request.message}\nAssistant: {reply}")
         
         return ChatResponse(
             reply=reply,

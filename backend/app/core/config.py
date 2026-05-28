@@ -36,9 +36,7 @@ class Settings(BaseSettings):
     SUPABASE_KEY: Optional[str] = os.getenv("SUPABASE_KEY")
     SUPABASE_JWT_SECRET: Optional[str] = os.getenv("SUPABASE_JWT_SECRET")
 
-    # Mem0
-    MEM0_API_KEY: Optional[str] = os.getenv("MEM0_API_KEY")
-
+    
     # SMTP/Email settings
     SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
