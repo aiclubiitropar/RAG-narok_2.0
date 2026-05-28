@@ -25,7 +25,25 @@ from io import BytesIO
 from qdrant_client import QdrantClient
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 
+import re
+
 logger = logging.getLogger(__name__)
+
+def _extract_and_clean_response(content):
+    if isinstance(content, list):
+        text_parts = []
+        for block in content:
+            if isinstance(block, dict) and "text" in block:
+                text_parts.append(block["text"])
+            elif isinstance(block, str):
+                text_parts.append(block)
+        text = "".join(text_parts)
+    else:
+        text = str(content)
+    
+    # Remove <think> blocks
+    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    return text.strip()
 
 def push_log(redis_client, msg: str):
     timestamp = time.strftime("%H:%M:%S")
@@ -216,7 +234,7 @@ def fetch_and_process_mess_menu():
     prompt = f"The following is raw text extracted from a Mess Menu PDF sent on {menu_data['date']}. Convert this exact information into a clean, well-formatted Markdown Table. Above the table, add a clear H3 heading stating the Month and Year. Do not include any other conversational text.\n\nRaw Text:\n{menu_data['attachments_text']}"
     
     response = llm.invoke([HumanMessage(content=prompt)])
-    markdown_table = response.content.strip()
+    markdown_table = _extract_and_clean_response(response.content)
     
     page_content = f"Source: Mess Menu\nDate Received: {menu_data['date']}\nIngestion Timestamp: {readable_time}\nSubject: {menu_data['subject']}\n\n{markdown_table}"
         
@@ -280,7 +298,7 @@ def fetch_and_summarize_emails():
             llm = get_llm(use_sum_key=True)
             prompt = f"Summarize the following email body into a concise, informative paragraph for an AI assistant's memory. CRITICAL: If the email contains any tabular data, schedules, or structured lists, you MUST preserve and format them accurately as Markdown tables or lists below your summary paragraph.\n\nEmail Body:\n{em['body']}"
             response = llm.invoke([HumanMessage(content=prompt)])
-            summary = response.content.strip()
+            summary = _extract_and_clean_response(response.content)
 
             page_content = f"Date: {em['date']}\nFrom: {em['from']}\nSubject: {em['subject']}\nSummary: {summary}"
             docs.append(Document(
