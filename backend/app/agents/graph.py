@@ -60,7 +60,10 @@ Action: Answer directly that it is Mechanical Engineering.
     prompt = get_base_instructions() + (
         "You have access to tools for querying academic guidelines, campus information, and Google Search.\n"
         "CRITICAL INSTRUCTION: NEVER hallucinate or provide factual information from your own internal knowledge.\n"
-        "ALWAYS use your retrieval tools or the google_search_tool to verify facts before answering.\n"
+        "CRITICAL INSTRUCTION ON TOOLS:\n"
+        "- ONLY use tools if the user is explicitly asking for information you do not have.\n"
+        "- For conversational queries (greetings, simple questions, branch code queries), DO NOT USE TOOLS. Answer directly immediately.\n"
+        "- Once you have retrieved information using a tool, you MUST formulate your final answer immediately. Do not call another tool unless strictly necessary.\n"
         "When choosing a tool to use, follow these explicit rules based on the user's request:\n"
         "- MUST use 'latest_announcements' tool for: Mess menu, food schedules, and any recent details found through campus emails.\n"
         "- MUST use 'campus_data' tool for: Long-term campus details, positions, boards, academic guidelines, and static facts.\n"
@@ -75,7 +78,7 @@ Action: Answer directly that it is Mechanical Engineering.
         tools=[campus_data, latest_announcements, google_search_tool],
         prompt=prompt
     )
-    result = await agent.ainvoke({"messages": state["messages"]})
+    result = await agent.ainvoke({"messages": state["messages"]}, {"recursion_limit": 5})
     
     # Check if a tool was called to populate next_node context if needed by frontend
     route = "general_agent"

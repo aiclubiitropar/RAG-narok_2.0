@@ -162,12 +162,12 @@ def smart_query(collection_name: str, query_text: str, topk: int = 20, top_l: in
                 merged.append(hit)
                 seen_ids.add(hit['id'])
                 
-        # Limit to top 5 but keep the full chunk content as requested
-        merged = merged[:5]
-        return "\n\n---\n\n".join([hit['document'] for hit in merged]) if merged else "No relevant information found."
+        # Limit to top 3 and truncate each chunk to 1500 characters to prevent context window explosion
+        merged = merged[:3]
+        return "\n\n---\n\n".join([hit['document'][:1500] + ("..." if len(hit['document']) > 1500 else "") for hit in merged]) if merged else "No relevant information found."
     else:
-        hits = hits[:5]
-        return "\n\n---\n\n".join([hit['document'] for hit in hits]) if hits else "No relevant information found."
+        hits = hits[:3]
+        return "\n\n---\n\n".join([hit['document'][:1500] + ("..." if len(hit['document']) > 1500 else "") for hit in hits]) if hits else "No relevant information found."
 
 @tool
 def campus_data(query: str) -> str:
