@@ -45,7 +45,7 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
     if use_sum_key:
         model_name = random.choice(["gemma-4-26b-a4b-it", "gemma-4-31b-it", "qwen/qwen3-32b"])
     elif model_name == "rotate":
-        gemini_models = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
+        gemini_models = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.0-flash"]
         
         if estimated_tokens > 12000:
             # Groq's max limit is 12K. Exceeding this routes purely to Gemini (1M TPM)
