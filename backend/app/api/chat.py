@@ -89,13 +89,16 @@ async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depe
                 if kind == "on_tool_start":
                     if name == "campus_data":
                         route_taken = "academic_agent"
-                        yield f"data: {json.dumps({'chunk': '*⚙️ Searching Academic/Campus Data...*\\n\\n'})}\n\n"
+                        data_str = json.dumps({'chunk': '*⚙️ Searching Academic/Campus Data...*\n\n'})
+                        yield f"data: {data_str}\n\n"
                     elif name == "latest_announcements":
                         route_taken = "campus_agent"
-                        yield f"data: {json.dumps({'chunk': '*⚙️ Searching Latest Announcements...*\\n\\n'})}\n\n"
+                        data_str = json.dumps({'chunk': '*⚙️ Searching Latest Announcements...*\n\n'})
+                        yield f"data: {data_str}\n\n"
                     elif name == "google_search_tool":
                         route_taken = "general_agent"
-                        yield f"data: {json.dumps({'chunk': '*⚙️ Searching the Web...*\\n\\n'})}\n\n"
+                        data_str = json.dumps({'chunk': '*⚙️ Searching the Web...*\n\n'})
+                        yield f"data: {data_str}\n\n"
                 
                 if kind == "on_chat_model_stream":
                     chunk = event["data"]["chunk"].content
