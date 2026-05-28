@@ -25,10 +25,10 @@ config = {
         }
     },
     "llm": {
-        "provider": "groq",
+        "provider": "litellm",
         "config": {
-            "model": "llama-3.1-8b-instant",
-            "api_key": getattr(settings, "GROQ_API_KEY", os.getenv("GROQ_API_KEY", "none"))
+            "model": "gemini/gemini-1.5-flash-8b",
+            "api_key": os.getenv("GEMINI_API_KEY")
         }
     }
 }

@@ -24,13 +24,7 @@ export default function AdminDashboard() {
     const [logs, setLogs] = useState<string[]>([]);
 
     const loadingPhrases = [
-        "Parsing JSON structure...",
-        "Validating metadata fields...",
-        "Pinging Iota Cluster...",
-        "Generating dense embeddings...",
-        "Vectorizing document chunks...",
-        "Ingesting into longterm_db...",
-        "Optimizing Qdrant indices..."
+        "Thinking..."
     ];
     const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
 
