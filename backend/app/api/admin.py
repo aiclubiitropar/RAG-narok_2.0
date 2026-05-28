@@ -224,8 +224,9 @@ async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Heade
         llm = get_llm(use_sum_key=True)
         prompt = f"The following text was extracted from a PDF of a hostel mess menu (food schedule for the week/month). The text is very messy because of the PDF extraction. Please reconstruct this into a clean, easy-to-read Markdown table. Do not include any extra conversation, ONLY output the Markdown table.\n\nRaw Text:\n{extracted_text}"
         
+        from worker.tasks.email_tasks import _extract_and_clean_response
         response = llm.invoke([HumanMessage(content=prompt)])
-        structured_menu = response.content.strip()
+        structured_menu = _extract_and_clean_response(response.content)
 
         # Log it to Redis so it appears in the UI
         log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] Apps Script pushed {req.filename}. Structured and saved successfully!"
@@ -294,8 +295,9 @@ async def upload_emails(req: EmailUploadRequest, authorization: str = Header(Non
             llm = get_llm(use_sum_key=True)
             prompt = f"Summarize the following email body into a concise, informative paragraph for an AI assistant's memory. CRITICAL: If the email contains any tabular data, schedules, or structured lists, you MUST preserve and format them accurately as Markdown tables or lists below your summary paragraph.\n\nEmail Body:\n{em.body}"
             
+            from worker.tasks.email_tasks import _extract_and_clean_response
             response = llm.invoke([HumanMessage(content=prompt)])
-            summary = response.content.strip()
+            summary = _extract_and_clean_response(response.content)
 
             page_content = f"Date: {em.date}\nFrom: {em.sender}\nSubject: {em.subject}\nSummary: {summary}"
             docs.append(Document(
