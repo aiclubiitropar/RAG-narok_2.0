@@ -23,25 +23,13 @@ export default function AdminDashboard() {
     const [isTriggering, setIsTriggering] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
 
-    const loadingPhrases = [
-        "Thinking...",
-        "Analyzing campus context...",
-        "Querying the Iota Cluster...",
-        "Cross-referencing databases...",
-        "Extracting relevant knowledge..."
-    ];
-    const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+    const [loadingStatus, setLoadingStatus] = useState("Thinking...");
 
     useEffect(() => {
-        if (uploadStatus !== "Uploading...") {
-            setLoadingPhraseIndex(0);
-            return;
+        if (!isLoading) {
+            setLoadingStatus("Thinking...");
         }
-        const interval = setInterval(() => {
-            setLoadingPhraseIndex(prev => (prev + 1) % loadingPhrases.length);
-        }, 1500);
-        return () => clearInterval(interval);
-    }, [uploadStatus]);
+    }, [isLoading]);
 
     useEffect(() => {
         const verifyAdmin = async () => {
@@ -331,7 +319,7 @@ export default function AdminDashboard() {
                                 {uploadStatus === "Uploading..." ? (
                                     <>
                                         <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin shrink-0"></div>
-                                        <span className="animate-pulse truncate">{loadingPhrases[loadingPhraseIndex]}</span>
+                                        <span className="animate-pulse truncate">{loadingStatus}</span>
                                     </>
                                 ) : (
                                     <><Upload size={18} /> Upload & Ingest</>

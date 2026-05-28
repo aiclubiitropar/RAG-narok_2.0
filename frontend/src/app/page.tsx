@@ -92,24 +92,12 @@ export default function Home() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   
-  const loadingPhrases = [
-    "Thinking...",
-    "Analyzing campus context...",
-    "Querying the Iota Cluster...",
-    "Cross-referencing databases...",
-    "Extracting relevant knowledge..."
-  ];
-  const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState("Thinking...");
 
   useEffect(() => {
     if (!isLoading) {
-      setLoadingPhraseIndex(0);
-      return;
+      setLoadingStatus("Thinking...");
     }
-    const interval = setInterval(() => {
-      setLoadingPhraseIndex(prev => (prev + 1) % loadingPhrases.length);
-    }, 1500);
-    return () => clearInterval(interval);
   }, [isLoading]);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -395,6 +383,9 @@ export default function Home() {
                 if (data.route_taken) {
                   const agentName = data.route_taken === "academic_agent" ? "Academic Advisor" : data.route_taken === "campus_agent" ? "Campus Guide" : "RAGnarok Core";
                   setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, agent: agentName } : m));
+                }
+                if (data.status) {
+                  setLoadingStatus(data.status);
                 }
                 if (data.error) {
                   console.error(data.error);
@@ -709,7 +700,7 @@ export default function Home() {
                   </div>
                   <div className="flex flex-col items-start">
                     <span className={`text-xs font-bold uppercase tracking-wider mb-1.5 px-1 transition-all duration-300 ${isDarkMode ? "text-[#FBBF24]" : "text-yellow-600"}`}>
-                      {loadingPhrases[loadingPhraseIndex]}
+                      {loadingStatus}
                     </span>
                     <div className={`p-5 rounded-2xl shadow-sm flex items-center gap-2 rounded-tl-sm ${isDarkMode ? "bg-[#141C2B] border border-[#22304A]" : "bg-white border border-gray-200"}`}>
                       <div className={`w-2 h-2 rounded-full animate-bounce ${isDarkMode ? "bg-indigo-400" : "bg-indigo-600"}`}></div>
