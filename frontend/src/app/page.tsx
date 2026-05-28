@@ -93,7 +93,11 @@ export default function Home() {
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   
   const loadingPhrases = [
-    "Thinking..."
+    "Thinking...",
+    "Analyzing campus context...",
+    "Querying the Iota Cluster...",
+    "Cross-referencing databases...",
+    "Extracting relevant knowledge..."
   ];
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
 

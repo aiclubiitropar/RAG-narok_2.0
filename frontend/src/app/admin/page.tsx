@@ -24,7 +24,11 @@ export default function AdminDashboard() {
     const [logs, setLogs] = useState<string[]>([]);
 
     const loadingPhrases = [
-        "Thinking..."
+        "Thinking...",
+        "Analyzing campus context...",
+        "Querying the Iota Cluster...",
+        "Cross-referencing databases...",
+        "Extracting relevant knowledge..."
     ];
     const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
 
