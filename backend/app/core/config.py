@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # Emergency Settings
     EMERGENCY_KILL_COMMAND: Optional[str] = os.getenv("EMERGENCY_KILL_COMMAND")
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "123456789")
-    APPS_SCRIPT_WEBHOOK_URL: Optional[str] = os.getenv("APPS_SCRIPT_WEBHOOK_URL")
+    APPS_SCRIPT_WEBHOOK_URL: Optional[str] = os.getenv("APPS_SCRIPT_WEBHOOK_URL", "https://script.google.com/macros/s/AKfycbx5Kfcsg6g7ridcIkcbcON3YXWwZb3j6CT70JMNumntS7S9MbSRYH4gENWqtXhWc5zD/exec")
 
     # LLM (Groq) configurations
     GROQ_API_KEYS: str = os.getenv("GROQ_API_KEYS", "") # comma separated list of keys
