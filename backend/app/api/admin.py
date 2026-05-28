@@ -191,7 +191,7 @@ class Base64UploadRequest(BaseModel):
     base64_data: str
 
 @router.post("/worker/upload-base64-pdf")
-def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Header(None)):
+async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Header(None)):
     if redis_client.get("email_worker_active") != "True":
         raise HTTPException(status_code=403, detail="Worker is stopped in Command Center.")
         
@@ -225,7 +225,7 @@ def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Header(None
         prompt = f"The following text was extracted from a PDF of a hostel mess menu (food schedule for the week/month). The text is very messy because of the PDF extraction. Please reconstruct this into a clean, easy-to-read Markdown table. Do not include any extra conversation, ONLY output the Markdown table.\n\nRaw Text:\n{extracted_text}"
         
         from worker.tasks.email_tasks import _extract_and_clean_response
-        response = llm.invoke([HumanMessage(content=prompt)])
+        response = await llm.ainvoke([HumanMessage(content=prompt)])
         structured_menu = _extract_and_clean_response(response.content)
 
         # Log it to Redis so it appears in the UI
@@ -272,7 +272,7 @@ class EmailUploadRequest(BaseModel):
     emails: List[EmailItem]
 
 @router.post("/worker/upload-emails")
-def upload_emails(req: EmailUploadRequest, authorization: str = Header(None)):
+async def upload_emails(req: EmailUploadRequest, authorization: str = Header(None)):
     if redis_client.get("email_worker_active") != "True":
         raise HTTPException(status_code=403, detail="Worker is stopped in Command Center.")
         
@@ -296,7 +296,7 @@ def upload_emails(req: EmailUploadRequest, authorization: str = Header(None)):
             prompt = f"Summarize the following email body into a concise, informative paragraph for an AI assistant's memory. CRITICAL: If the email contains any tabular data, schedules, or structured lists, you MUST preserve and format them accurately as Markdown tables or lists below your summary paragraph.\n\nEmail Body:\n{em.body}"
             
             from worker.tasks.email_tasks import _extract_and_clean_response
-            response = llm.invoke([HumanMessage(content=prompt)])
+            response = await llm.ainvoke([HumanMessage(content=prompt)])
             summary = _extract_and_clean_response(response.content)
 
             page_content = f"Date: {em.date}\nFrom: {em.sender}\nSubject: {em.subject}\nSummary: {summary}"

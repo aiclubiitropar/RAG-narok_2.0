@@ -26,7 +26,7 @@ def get_base_instructions() -> str:
         "MCB (Math & Computing), and AIB (AI & Data Engineering).\n"
     )
 
-def single_agent_node(state: AgentState):
+async def single_agent_node(state: AgentState):
     # Estimate tokens: ~4 characters per token + 800 tokens for system prompt and tools
     total_chars = sum(len(str(m.content)) for m in state["messages"]) if state.get("messages") else 0
     estimated_tokens = (total_chars // 4) + 800
@@ -75,7 +75,7 @@ Action: Answer directly that it is Mechanical Engineering.
         tools=[campus_data, latest_announcements, google_search_tool],
         prompt=prompt
     )
-    result = agent.invoke({"messages": state["messages"]})
+    result = await agent.ainvoke({"messages": state["messages"]})
     
     # Check if a tool was called to populate next_node context if needed by frontend
     route = "general_agent"
