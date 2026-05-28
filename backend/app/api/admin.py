@@ -43,7 +43,7 @@ def trigger_email_worker():
         raise HTTPException(status_code=500, detail=f"Failed to trigger Webhook: {str(e)}")
 
 class WorkerConfig(BaseModel):
-    polling_rate_hours: Optional[float] = 24.0
+    polling_rate_hours: float | None = 24.0
     max_capacity: int
 
 @router.get("/worker/config")
