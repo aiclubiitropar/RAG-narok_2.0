@@ -159,7 +159,7 @@ def worker_status():
         return {"worker_state": "Offline (No Redis)"}
 
 @router.post("/worker/maintenance/start")
-def start_maintenance_worker():
+async def start_maintenance_worker():
     try:
         redis_client.set("maintenance_worker_active", "True")
         from worker.tasks.email_tasks import push_log
@@ -169,7 +169,7 @@ def start_maintenance_worker():
         raise HTTPException(status_code=500, detail=f"Failed to start maintenance worker: {e}")
 
 @router.post("/worker/maintenance/stop")
-def stop_maintenance_worker():
+async def stop_maintenance_worker():
     try:
         redis_client.set("maintenance_worker_active", "False")
         from worker.tasks.email_tasks import push_log
@@ -179,7 +179,7 @@ def stop_maintenance_worker():
         raise HTTPException(status_code=500, detail="Redis is not running.")
 
 @router.get("/worker/maintenance/status")
-def maintenance_worker_status():
+async def maintenance_worker_status():
     try:
         status = redis_client.get("maintenance_worker_active")
         return {"worker_state": "Active" if status == "True" else "Inactive"}
