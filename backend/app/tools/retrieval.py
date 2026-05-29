@@ -96,6 +96,18 @@ def get_campus_store():
 
 import re
 
+def get_dynamic_chunks(candidates, max_chars=8000, min_chunks=3):
+    """Dynamically select chunks until a character limit is reached, ensuring a minimum number of chunks."""
+    selected = []
+    current_len = 0
+    for hit in candidates:
+        if len(selected) < min_chunks or current_len < max_chars:
+            selected.append(hit)
+            current_len += len(hit['document'])
+        else:
+            break
+    return selected
+
 def smart_query(collection_name: str, query_text: str, topk: int = 20, top_l: int = 7, doc_search: bool = True):
     """
     Hybrid query: first prefetch with dense (topk), then filter.
@@ -161,11 +173,12 @@ def smart_query(collection_name: str, query_text: str, topk: int = 20, top_l: in
             if hit['id'] not in seen_ids:
                 merged.append(hit)
                 seen_ids.add(hit['id'])
+                seen_ids.add(hit['id'])
                 
-        merged = merged[:3]
+        merged = get_dynamic_chunks(merged)
         return "\n\n---\n\n".join([hit['document'] for hit in merged]) if merged else "No relevant information found."
     else:
-        hits = hits[:3]
+        hits = get_dynamic_chunks(hits)
         return "\n\n---\n\n".join([hit['document'] for hit in hits]) if hits else "No relevant information found."
 
 @tool
