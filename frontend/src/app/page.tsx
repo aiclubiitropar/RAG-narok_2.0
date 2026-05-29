@@ -701,6 +701,7 @@ export default function Home() {
                           rehypePlugins={[rehypeKatex]}
                           components={{
                             code: CodeBlock as any,
+                            a: ({node, ...props}) => <a target="_blank" rel="noopener noreferrer" {...props} className="text-emerald-500 hover:text-emerald-400 underline underline-offset-2" />,
                             table: ({node, ...props}) => <div className="overflow-x-auto my-4"><table className="min-w-full divide-y divide-gray-700/50" {...props} /></div>,
                             th: ({node, ...props}) => <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider bg-black/5 dark:bg-white/5" {...props} />,
                             td: ({node, ...props}) => <td className="px-4 py-3 text-sm whitespace-nowrap border-b border-gray-700/50" {...props} />
