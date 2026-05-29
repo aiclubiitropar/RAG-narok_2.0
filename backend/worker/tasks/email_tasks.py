@@ -5,6 +5,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 from app.tools.retrieval import embeddings
+from app.core.config import settings
 import os
 import imaplib
 import email
@@ -246,8 +247,8 @@ def fetch_and_process_mess_menu():
     QdrantVectorStore.from_documents(
         [doc],
         embeddings,
-        url=os.getenv("QDRANT_URL"),
-        api_key=os.getenv("QDRANT_API_KEY"),
+        url=settings.QDRANT_URL,
+        api_key=settings.QDRANT_API_KEY,
         collection_name="shortterm_db",
         force_recreate=False
     )
@@ -311,8 +312,8 @@ def fetch_and_summarize_emails():
             QdrantVectorStore.from_documents(
                 docs,
                 embeddings,
-                url=os.getenv("QDRANT_URL"),
-                api_key=os.getenv("QDRANT_API_KEY"),
+                url=settings.QDRANT_URL,
+                api_key=settings.QDRANT_API_KEY,
                 collection_name="shortterm_db",
                 force_recreate=False
             )
@@ -321,7 +322,7 @@ def fetch_and_summarize_emails():
             # FIFO Cleanup Logic
             try:
                 max_capacity = int(redis_client.get("email_worker_max_capacity") or 1000)
-                q_client = QdrantClient(url=os.getenv("QDRANT_URL"), api_key=os.getenv("QDRANT_API_KEY"))
+                q_client = QdrantClient(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
                 count_result = q_client.count(collection_name="shortterm_db")
                 
                 if count_result.count > max_capacity:
@@ -353,8 +354,8 @@ def maintenance_cleanup_task():
         return
         
     try:
-        q_client = QdrantClient(url=os.getenv("QDRANT_URL"), api_key=os.getenv("QDRANT_API_KEY"))
-        collection_name = os.getenv("QDRANT_SHORTTERM_COLLECTION", "shortterm_db")
+        q_client = QdrantClient(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
+        collection_name = settings.QDRANT_SHORTTERM_COLLECTION
         
         # Check if collection exists
         try:
