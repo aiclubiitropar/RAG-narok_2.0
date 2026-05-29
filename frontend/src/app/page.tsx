@@ -64,6 +64,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   agent?: string;
+  reasoning_steps?: string[];
 }
 
 interface ChatSession {
@@ -351,7 +352,8 @@ export default function Home() {
         id: assistantId,
         role: "assistant",
         content: "",
-        agent: "RAGnarok"
+        agent: "RAGnarok",
+        reasoning_steps: []
       }]);
 
       const reader = response.body?.getReader();
@@ -385,7 +387,16 @@ export default function Home() {
                   setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, agent: agentName } : m));
                 }
                 if (data.status) {
-                  setLoadingStatus(data.status);
+                  setMessages(prev => prev.map(m => {
+                    if (m.id === assistantId) {
+                      const steps = m.reasoning_steps || [];
+                      if (!steps.includes(data.status)) {
+                        return { ...m, reasoning_steps: [...steps, data.status] };
+                      }
+                    }
+                    return m;
+                  }));
+                  if (shouldAutoScroll) scrollToBottom("auto");
                 }
                 if (data.error) {
                   console.error(data.error);
@@ -674,6 +685,16 @@ export default function Home() {
                         ? "bg-indigo-600 text-white rounded-tr-sm" 
                         : isDarkMode ? "bg-[#141C2B] border border-[#22304A] text-gray-200 rounded-tl-sm" : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm"
                     }`}>
+                      {msg.reasoning_steps && msg.reasoning_steps.length > 0 && (
+                        <div className={`mb-4 pb-3 border-b border-dashed ${isDarkMode ? 'border-gray-700' : 'border-gray-300'} space-y-1.5`}>
+                          {msg.reasoning_steps.map((step, idx) => (
+                            <div key={idx} className="flex items-start gap-2 text-xs font-mono">
+                              <span className={`mt-[1px] ${isDarkMode ? 'text-[#FBBF24]' : 'text-yellow-600'}`}>▸</span>
+                              <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>{step}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className={`prose prose-sm md:prose-base max-w-none ${msg.role === "user" ? "prose-invert prose-p:text-white" : isDarkMode ? "prose-invert" : ""} prose-p:leading-relaxed prose-pre:p-0 prose-pre:m-0 prose-pre:bg-transparent`}>
                         <ReactMarkdown 
                           remarkPlugins={[remarkGfm, remarkMath]}
