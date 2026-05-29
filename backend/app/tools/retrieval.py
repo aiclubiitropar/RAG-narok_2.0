@@ -163,19 +163,10 @@ def smart_query(collection_name: str, query_text: str, topk: int = 20, top_l: in
                 seen_ids.add(hit['id'])
                 
         merged = merged[:3]
-        
-        def clean_chunk(text):
-            # Remove JSON-like curly braces and quotes, but keep table pipes
-            return re.sub(r'[{}"\']', '', text).strip()
-            
-        return "\n\n---\n\n".join([clean_chunk(hit['document']) for hit in merged]) if merged else "No relevant information found."
+        return "\n\n---\n\n".join([hit['document'] for hit in merged]) if merged else "No relevant information found."
     else:
         hits = hits[:3]
-        
-        def clean_chunk(text):
-            return re.sub(r'[{}"\']', '', text).strip()
-            
-        return "\n\n---\n\n".join([clean_chunk(hit['document']) for hit in hits]) if hits else "No relevant information found."
+        return "\n\n---\n\n".join([hit['document'] for hit in hits]) if hits else "No relevant information found."
 
 @tool
 def campus_data(query: str) -> str:
