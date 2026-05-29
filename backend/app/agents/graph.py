@@ -74,6 +74,7 @@ Action: Answer directly that it is Mechanical Engineering.
         "- MUST use 'latest_announcements' tool for: Mess menu, food schedules, and any recent details found through campus emails.\n"
         "- MUST use 'campus_data' tool for: Long-term campus details, positions, boards, academic guidelines, and static facts.\n"
         "- MUST use 'google_search_tool' for: Everything else (world news, general knowledge, etc) OR as a fallback if the campus databases return 'No relevant information found'.\n"
+        "IMPORTANT: When answering time-based queries (e.g., 'what is for lunch today?', 'latest events'), you MUST carefully cross-reference the current date and time with the dates mentioned in your retrieved information to ensure your answer is accurate for the requested day.\n"
         "IMPORTANT: If you find sufficient information, DO NOT call subsequent tools. STOP searching and answer the user immediately.\n"
         "IMPORTANT: If a database tool returns 'No relevant information found', you MUST immediately call the 'google_search_tool' to search the web before giving up.\n"
         "If ALL relevant tools return no information, admit that you do not know and advise the user to visit the official IIT Ropar website (https://www.iitrpr.ac.in).\n"
