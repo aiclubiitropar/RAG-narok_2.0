@@ -52,6 +52,10 @@ Input: "Hello!"
 Thought: Greeting. No tool needed.
 Action: Answer directly with a greeting.
 
+Input: "how do u know this?"
+Thought: The user is asking about the source of my previous response. I have this in my conversation history.
+Action: Answer directly that the information was retrieved from the campus database or the relevant source.
+
 Input: "Which branch is 2023MEB1456"
 Thought: Entry number analysis. MEB refers to Mechanical Engineering.
 Action: Answer directly that it is Mechanical Engineering.
@@ -61,9 +65,10 @@ Action: Answer directly that it is Mechanical Engineering.
         "You have access to tools for querying academic guidelines, campus information, and Google Search.\n"
         "CRITICAL INSTRUCTION: NEVER hallucinate or provide factual information from your own internal knowledge.\n"
         "CRITICAL INSTRUCTION ON TOOLS:\n"
-        "- ONLY use tools if the user is explicitly asking for information you do not have.\n"
+        "- ONLY use tools if the user is asking a NEW question for information you do not already have in your conversation history.\n"
+        "- For follow-up questions (e.g., 'how do you know this?', 'tell me more'), DO NOT USE TOOLS if the context is already in the chat history. Just answer directly based on previous messages.\n"
         "- For conversational queries (greetings, simple questions, branch code queries), DO NOT USE TOOLS. Answer directly immediately.\n"
-        "- Once you have retrieved information using a tool, you MUST formulate your final answer immediately. Do not call another tool unless strictly necessary.\n"
+        "- After using a tool, you MUST formulate a final answer in text. NEVER return an empty response.\n"
         "When choosing a tool to use, follow these explicit rules based on the user's request:\n"
         "- MUST use 'latest_announcements' tool for: Mess menu, food schedules, and any recent details found through campus emails.\n"
         "- MUST use 'campus_data' tool for: Long-term campus details, positions, boards, academic guidelines, and static facts.\n"
