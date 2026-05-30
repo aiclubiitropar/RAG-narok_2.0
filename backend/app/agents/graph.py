@@ -74,6 +74,7 @@ Action: Answer directly based on conversation history. DO NOT use tools.
         "- RULE 3: If the user asks 'how do you know this?' or 'where did you find this?', look at your previous response and confidently answer that you retrieved it from the campus database, emails, or Google Search, WITHOUT calling any tools.\n"
         "- RULE 4: For conversational queries (greetings, simple questions, branch code queries), DO NOT USE TOOLS. Answer directly.\n"
         "- RULE 5: After using a tool, you MUST formulate a final answer in text. NEVER return an empty response.\n"
+        "- RULE 6: If you are answering a follow-up question and need to use a tool, you MUST replace pronouns (e.g. 'it', 'he', 'they') with the actual subject from the conversation history before querying the tool.\n"
         "If you decide a tool IS necessary (because it's a NEW question), follow these explicit rules:\n"
         "- MUST use 'latest_announcements' tool for: Mess menu, food schedules, and any recent details found through campus emails.\n"
         "- MUST use 'campus_data' tool for: Long-term campus details, positions, boards, academic guidelines, and static facts.\n"
@@ -93,7 +94,7 @@ Action: Answer directly based on conversation history. DO NOT use tools.
     )
     
     try:
-        result = await agent.ainvoke({"messages": state["messages"]}, {"recursion_limit": 6})
+        result = await agent.ainvoke({"messages": state["messages"]}, {"recursion_limit": 12})
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Agent recursion limit hit: {e}")
