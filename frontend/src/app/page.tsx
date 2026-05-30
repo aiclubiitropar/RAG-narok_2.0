@@ -352,6 +352,7 @@ export default function Home() {
     setIsLoading(true);
     setShouldAutoScroll(true);
 
+    let assistantId = "";
     try {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -379,7 +380,7 @@ export default function Home() {
       setIsLoading(false); // Remove spinner as streaming starts
       setIsStreaming(true);
 
-      const assistantId = crypto.randomUUID();
+      assistantId = crypto.randomUUID();
       setMessages(prev => [...prev, {
         id: assistantId,
         role: "assistant",
