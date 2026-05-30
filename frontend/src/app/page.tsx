@@ -457,7 +457,7 @@ export default function Home() {
         if (m.id === assistantId && !m.content) {
           return {
             ...m,
-            content: "⚠️ **Connection Interrupted:** Server took too long to respond. Please try asking again."
+            content: "⚠️ **Connection Interrupted:** Server took too long to respond due to high traffic. Please try asking again."
           };
         }
         return m;
