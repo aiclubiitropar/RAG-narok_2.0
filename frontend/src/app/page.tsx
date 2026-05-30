@@ -243,8 +243,9 @@ export default function Home() {
 
   useEffect(() => {
     // Check initial status
-    setIsOnline(typeof navigator !== 'undefined' && navigator.onLine);
-
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setServerStatus('offline');
+    }
     const checkAdmin = async () => {
       let adminActive = false;
       if (document.cookie.includes('is_admin=true')) {
