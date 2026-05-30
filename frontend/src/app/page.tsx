@@ -291,7 +291,7 @@ export default function Home() {
     };
 
     checkServerHealth();
-    const intervalId = setInterval(checkServerHealth, 15000);
+    const intervalId = setInterval(checkServerHealth, 5000);
 
     const handleOnline = () => checkServerHealth();
     const handleOffline = () => setServerStatus('offline');
@@ -442,7 +442,8 @@ export default function Home() {
         }
       }
     } catch (error) {
-      console.error(error);
+      console.error("Chat error:", error);
+      setServerStatus('offline');
       const errorMessage: Message = { 
         id: crypto.randomUUID(), 
         role: "assistant", 
