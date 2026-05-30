@@ -67,6 +67,7 @@ async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depe
         try:
             final_reply = ""
             route_taken = "general_agent" # default fallback
+            final_state = None
             
             async for event in app_graph.astream_events(initial_state, version="v2"):
                 kind = event["event"]
@@ -100,8 +101,18 @@ async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depe
                     if chunk:
                         final_reply += chunk
                         yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                        
+                if kind == "on_chain_end":
+                    output = event.get("data", {}).get("output")
+                    if isinstance(output, dict) and "messages" in output:
+                        final_state = output
             
-            
+            # If the LLM didn't stream anything (e.g., due to hitting recursion limit and returning a fallback)
+            if not final_reply and final_state and "messages" in final_state:
+                last_msg = final_state["messages"][-1]
+                if getattr(last_msg, "type", "") == "ai" and getattr(last_msg, "content", ""):
+                    yield f"data: {json.dumps({'chunk': last_msg.content})}\n\n"
+
             # Yield the final route metadata
             yield f"data: {json.dumps({'route_taken': route_taken})}\n\n"
             
