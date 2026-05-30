@@ -34,18 +34,10 @@ export default function LoginPage() {
       const { getAdminConfig } = await import('../actions/admin');
       const adminConfig = await getAdminConfig();
 
-      const adminEmails = adminConfig.adminEmail
-        ? adminConfig.adminEmail.split(',').map((e: string) => e.trim().toLowerCase())
-        : [];
-      
-      // Explicitly allow the requested co-admin
-      if (!adminEmails.includes('2024meb1337@iitrpr.ac.in')) {
-        adminEmails.push('2024meb1337@iitrpr.ac.in');
-      }
-
+      const adminEmail = adminConfig.adminEmail?.trim().toLowerCase();
       const inputEmail = email.trim().toLowerCase();
 
-      if (adminEmails.includes(inputEmail) && !isForgotPassword) {
+      if (adminEmail && inputEmail === adminEmail && !isForgotPassword) {
         if (isSignUp) {
           setError("This email already exists.");
           setIsLoading(false);
