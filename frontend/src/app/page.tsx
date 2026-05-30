@@ -86,7 +86,7 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isOnline, setIsOnline] = useState(true);
+  const [serverStatus, setServerStatus] = useState<'green' | 'yellow' | 'red' | 'offline'>('green');
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string>("User");
   const [userId, setUserId] = useState<string | null>(null);
@@ -262,8 +262,38 @@ export default function Home() {
     };
     checkAdmin();
 
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const checkServerHealth = async () => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        setServerStatus('offline');
+        return;
+      }
+      try {
+        const start = performance.now();
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiUrl}/health`, { 
+          method: 'GET',
+          cache: 'no-store'
+        });
+        const end = performance.now();
+        
+        if (res.ok) {
+          const latency = end - start;
+          if (latency < 300) setServerStatus('green');
+          else if (latency < 800) setServerStatus('yellow');
+          else setServerStatus('red');
+        } else {
+          setServerStatus('offline');
+        }
+      } catch (e) {
+        setServerStatus('offline');
+      }
+    };
+
+    checkServerHealth();
+    const intervalId = setInterval(checkServerHealth, 15000);
+
+    const handleOnline = () => checkServerHealth();
+    const handleOffline = () => setServerStatus('offline');
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -290,6 +320,7 @@ export default function Home() {
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
         window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        clearInterval(intervalId);
       };
     }
   }, []);
@@ -483,14 +514,14 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col text-left">
                    <span className="text-sm font-bold tracking-wide">Iota Cluster</span>
-                   <span className="text-[9px] uppercase tracking-widest text-gray-500 font-semibold">{isOnline ? "Connected" : "Disconnected"}</span>
+                   <span className="text-[9px] uppercase tracking-widest text-gray-500 font-semibold">{serverStatus === 'offline' ? "Disconnected" : "Connected"}</span>
                 </div>
               </div>
               <div className="relative flex h-2.5 w-2.5">
-                {isOnline && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                {serverStatus !== 'offline' && (
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${serverStatus === 'green' ? 'bg-emerald-400' : serverStatus === 'yellow' ? 'bg-yellow-400' : 'bg-red-400'}`}></span>
                 )}
-                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isOnline ? "bg-emerald-500" : "bg-red-500"}`}></span>
+                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${serverStatus === 'offline' ? 'bg-red-500' : serverStatus === 'green' ? 'bg-emerald-500' : serverStatus === 'yellow' ? 'bg-yellow-500' : 'bg-red-500'}`}></span>
               </div>
             </div>
           </div>
