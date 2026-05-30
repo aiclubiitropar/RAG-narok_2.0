@@ -70,7 +70,9 @@ class EmailScraper:
         try:
             self.connect()
             self.mail.select("inbox")
-            status, messages = self.mail.search(None, "UNSEEN")
+            import datetime
+            date_str = (datetime.datetime.now() - datetime.timedelta(days=2)).strftime("%d-%b-%Y")
+            status, messages = self.mail.search(None, f'(UNSEEN SINCE "{date_str}")')
             if status != "OK":
                 return []
                 
