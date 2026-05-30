@@ -22,7 +22,7 @@ class QdrantManager:
                     # Adjust vector size based on the actual embedding model used.
                     self.client.create_collection(
                         collection_name=col_name,
-                        vectors_config={"size": 1536, "distance": "Cosine"}
+                        vectors_config={"size": 768, "distance": "Cosine"}
                     )
                     logger.info(f"Created collection {col_name}")
         except Exception as e:
