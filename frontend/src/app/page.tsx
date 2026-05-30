@@ -694,7 +694,7 @@ export default function Home() {
                                 {idx === msg.reasoning_steps!.length - 1 && !msg.content ? (
                                   <>
                                     {step.replace(/\.+$/, '')}
-                                    <span className="inline-flex tracking-widest animate-pulse">...</span>
+                                    <span className="inline-block tracking-widest typing-dots w-[14px] text-left"></span>
                                   </>
                                 ) : (
                                   step

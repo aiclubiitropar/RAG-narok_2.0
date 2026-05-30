@@ -28,3 +28,16 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #4B5563;
 }
+
+@keyframes typing {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
+}
+
+.typing-dots::after {
+  content: '';
+  animation: typing 1.5s infinite;
+}
