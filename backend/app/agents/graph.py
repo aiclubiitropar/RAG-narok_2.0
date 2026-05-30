@@ -59,18 +59,22 @@ Action: Answer directly that the information was retrieved from the campus datab
 Input: "Which branch is 2023MEB1456"
 Thought: Entry number analysis. MEB refers to Mechanical Engineering.
 Action: Answer directly that it is Mechanical Engineering.
+
+Input: "so now it is pournima??" (Context: We just discussed Pournima dates)
+Thought: This is a follow-up asking to confirm the date from the previous message. I have the context.
+Action: Answer directly based on conversation history. DO NOT use tools.
 """
 
     prompt = get_base_instructions() + (
         "You have access to tools for querying academic guidelines, campus information, and Google Search.\n"
         "CRITICAL INSTRUCTION: NEVER hallucinate or provide factual information from your own internal knowledge.\n"
         "CRITICAL INSTRUCTION ON TOOLS:\n"
-        "- ONLY use tools if the user is asking a NEW question for information you do not already have in your conversation history.\n"
-        "- Your previous responses in the chat history were generated using your tools. If the user asks 'how do you know this?' or 'where did you find this?', you should look at your previous response and confidently answer that you retrieved it from the campus database, emails, or Google Search, WITHOUT calling any tools again.\n"
-        "- For follow-up questions (e.g., 'tell me more'), DO NOT USE TOOLS if the context is already in the chat history. Just answer directly based on previous messages.\n"
-        "- For conversational queries (greetings, simple questions, branch code queries), DO NOT USE TOOLS. Answer directly immediately.\n"
-        "- After using a tool, you MUST formulate a final answer in text. NEVER return an empty response.\n"
-        "When choosing a tool to use, follow these explicit rules based on the user's request:\n"
+        "- RULE 1: If the user is asking a follow-up question and the answer can be deduced from your conversation history, YOU MUST NOT USE ANY TOOLS. Answer directly based on the history.\n"
+        "- RULE 2: ONLY use tools if the user is asking a NEW question for information you do NOT already have in the conversation history.\n"
+        "- RULE 3: If the user asks 'how do you know this?' or 'where did you find this?', look at your previous response and confidently answer that you retrieved it from the campus database, emails, or Google Search, WITHOUT calling any tools.\n"
+        "- RULE 4: For conversational queries (greetings, simple questions, branch code queries), DO NOT USE TOOLS. Answer directly.\n"
+        "- RULE 5: After using a tool, you MUST formulate a final answer in text. NEVER return an empty response.\n"
+        "If you decide a tool IS necessary (because it's a NEW question), follow these explicit rules:\n"
         "- MUST use 'latest_announcements' tool for: Mess menu, food schedules, and any recent details found through campus emails.\n"
         "- MUST use 'campus_data' tool for: Long-term campus details, positions, boards, academic guidelines, and static facts.\n"
         "- MUST use 'google_search_tool' for: Everything else (world news, general knowledge, etc) OR as a fallback if the campus databases return 'No relevant information found'.\n"
