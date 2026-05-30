@@ -457,7 +457,7 @@ export default function Home() {
         if (m.id === assistantId && !m.content) {
           return {
             ...m,
-            content: "⚠️ **Connection Interrupted:** The Iota Cluster took too long to respond or the connection was dropped. Please try asking again."
+            content: "⚠️ **Connection Interrupted:** Server took too long to respond. Please try asking again."
           };
         }
         return m;
