@@ -760,7 +760,7 @@ export default function Home() {
                             td: ({node, ...props}) => <td className="px-4 py-3 text-sm whitespace-nowrap border-b border-gray-700/50" {...props} />
                           }}
                         >
-                          {msg.content}
+                          {msg.content.replace(/<br\s*\/?>/gi, '  \n')}
                         </ReactMarkdown>
                       </div>
                     </div>
