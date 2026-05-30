@@ -60,7 +60,7 @@ Input: "Which branch is 2023MEB1456"
 Thought: Entry number analysis. MEB refers to Mechanical Engineering.
 Action: Answer directly that it is Mechanical Engineering.
 
-Input: "so now it is pournima??" (Context: We just discussed Pournima dates)
+Input: "so the deadline is tomorrow??" (Context: We just discussed the registration deadline)
 Thought: This is a follow-up asking to confirm the date from the previous message. I have the context.
 Action: Answer directly based on conversation history. DO NOT use tools.
 """
