@@ -108,13 +108,17 @@ def get_dynamic_chunks(candidates, max_chars=8000, min_chunks=3):
             break
     return selected
 
-def smart_query(collection_name: str, query_text: str, topk: int = 20, top_l: int = 7, doc_search: bool = True):
+def smart_query(collection_name: str, query_text: str, topk: int = 100, top_l: int = 7, doc_search: bool = True):
     """
     Hybrid query: first prefetch with dense (topk), then filter.
     If doc_search is True, also filter by fuzzy/substring/keyword in the document (case-insensitive) 
-    and concatenate all matches in the collection.
+    and prioritize those matches.
     """
-    dense_vec = embeddings.embed_query(query_text)
+    try:
+        dense_vec = embeddings.embed_query(query_text)
+    except Exception as e:
+        logger.error(f"Embedding failed: {e}")
+        return "Search unavailable due to embedding model error."
     
     results = client.query_points(
         collection_name=collection_name,
@@ -129,12 +133,13 @@ def smart_query(collection_name: str, query_text: str, topk: int = 20, top_l: in
     hits = []
     for hit in points_list:
         payload = getattr(hit, 'payload', {}) or {}
-        # Langchain Qdrant uses page_content
         content = payload.get('page_content', '')
-        hits.append({"id": hit.id, "document": content})
+        if content:
+            hits.append({"id": hit.id, "document": content})
+            
+    if not hits:
+        return "No relevant information found."
         
-    hits = hits[:top_l]
-    
     if doc_search:
         query_words = set(re.findall(r"\w+", query_text.lower()))
         def fuzzy_match(doc):
@@ -147,39 +152,24 @@ def smart_query(collection_name: str, query_text: str, topk: int = 20, top_l: in
                         return True
             return False
 
-        filtered_hits = [hit for hit in hits if fuzzy_match(hit['document'])]
+        # Prioritize hits that have fuzzy matches
+        exact_matches = []
+        other_matches = []
+        for hit in hits:
+            if fuzzy_match(hit['document']):
+                exact_matches.append(hit)
+            else:
+                other_matches.append(hit)
+                
+        # Combine prioritizing exact matches, then fallback to dense
+        merged = exact_matches + other_matches
         
-        doc_hits = []
-        next_offset = None
-        while True:
-            scroll_result = client.scroll(collection_name=collection_name, with_payload=True, offset=next_offset, limit=100)
-            points = scroll_result[0]
-            next_offset = scroll_result[1]
-            for point in points:
-                payload = point.payload or {}
-                content = payload.get('page_content', '')
-                if content and fuzzy_match(content):
-                    doc_hits.append({"id": point.id, "document": content})
-            if not next_offset:
-                break
-                
-        seen_ids = set()
-        merged = []
-        for hit in filtered_hits:
-            if hit['id'] not in seen_ids:
-                merged.append(hit)
-                seen_ids.add(hit['id'])
-        for hit in doc_hits:
-            if hit['id'] not in seen_ids:
-                merged.append(hit)
-                seen_ids.add(hit['id'])
-                seen_ids.add(hit['id'])
-                
-        merged = get_dynamic_chunks(merged)
-        return "\n\n---\n\n".join([hit['document'] for hit in merged]) if merged else "No relevant information found."
+        # Take the top_l
+        final_hits = get_dynamic_chunks(merged[:max(top_l, len(exact_matches))])
+        return "\n\n---\n\n".join([hit['document'] for hit in final_hits]) if final_hits else "No relevant information found."
     else:
-        hits = get_dynamic_chunks(hits)
-        return "\n\n---\n\n".join([hit['document'] for hit in hits]) if hits else "No relevant information found."
+        final_hits = get_dynamic_chunks(hits[:top_l])
+        return "\n\n---\n\n".join([hit['document'] for hit in final_hits]) if final_hits else "No relevant information found."
 
 @tool
 def campus_data(query: str) -> str:
