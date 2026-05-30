@@ -452,6 +452,16 @@ export default function Home() {
     } finally {
       setIsLoading(false);
       setIsStreaming(false);
+      
+      setMessages(prev => prev.map(m => {
+        if (m.id === assistantId && !m.content) {
+          return {
+            ...m,
+            content: "⚠️ **Connection Interrupted:** The Iota Cluster took too long to respond or the connection was dropped. Please try asking again."
+          };
+        }
+        return m;
+      }));
     }
   };
 
