@@ -691,9 +691,13 @@ export default function Home() {
                             <div key={idx} className="flex items-start gap-2 text-xs font-mono">
                               <span className={`mt-[1px] ${isDarkMode ? 'text-[#FBBF24]' : 'text-yellow-600'}`}>▸</span>
                               <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                                {step}
-                                {idx === msg.reasoning_steps!.length - 1 && !msg.content && (
-                                  <span className="inline-flex tracking-widest animate-pulse ml-1">...</span>
+                                {idx === msg.reasoning_steps!.length - 1 && !msg.content ? (
+                                  <>
+                                    {step.replace(/\.+$/, '')}
+                                    <span className="inline-flex tracking-widest animate-pulse">...</span>
+                                  </>
+                                ) : (
+                                  step
                                 )}
                               </span>
                             </div>
