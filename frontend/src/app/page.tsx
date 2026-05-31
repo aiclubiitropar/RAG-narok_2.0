@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { 
   Send, Menu, Plus, MessageSquare, Settings, User, X, Sun, Moon,
-  GraduationCap, Calendar, Coffee, FileText, Zap, Compass, ChevronRight, Server, LogOut, Copy, Check
+  GraduationCap, Calendar, Coffee, FileText, Zap, Compass, ChevronRight, Server, LogOut, Copy, Check, Square
 } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 import ReactMarkdown from 'react-markdown';
@@ -94,6 +94,13 @@ export default function Home() {
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   
   const [loadingStatus, setLoadingStatus] = useState("Thinking...");
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const stopStreaming = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
 
   useEffect(() => {
     if (!isLoading) {
@@ -360,6 +367,8 @@ export default function Home() {
 
       const historyToSend = messages.map(m => ({ role: m.role, content: m.content }));
 
+      abortControllerRef.current = new AbortController();
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const response = await fetch(`${apiUrl}/api/chat/stream`, {
         method: "POST",
@@ -370,7 +379,8 @@ export default function Home() {
         body: JSON.stringify({ 
           message: textToSend,
           chat_history: historyToSend
-        })
+        }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
@@ -441,7 +451,8 @@ export default function Home() {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') return;
       console.error("Chat error:", error);
       setServerStatus('offline');
       const errorMessage: Message = { 
@@ -455,11 +466,13 @@ export default function Home() {
       setIsLoading(false);
       setIsStreaming(false);
       
+      const wasAborted = abortControllerRef.current?.signal.aborted;
+      
       setMessages(prev => prev.map(m => {
         if (m.id === assistantId && !m.content) {
           return {
             ...m,
-            content: "⚠️ **Connection Interrupted:** Server took too long to respond due to high traffic. Please try asking again."
+            content: wasAborted ? "⚠️ **Stopped by user.**" : "⚠️ **Connection Interrupted:** Server took too long to respond due to high traffic. Please try asking again."
           };
         }
         return m;
@@ -816,11 +829,16 @@ export default function Home() {
               />
               
               <button 
-                type="submit" 
-                disabled={!input.trim() || isLoading || isStreaming}
-                className={`p-3 m-1 rounded-2xl transition-all duration-300 flex items-center justify-center min-w-[56px] disabled:opacity-50 disabled:cursor-not-allowed ${input.trim() ? (isDarkMode ? "bg-[#FBBF24] text-[#0D131F] hover:bg-yellow-400 hover:shadow-lg hover:shadow-yellow-500/20" : "bg-indigo-600 text-white hover:bg-indigo-700") : (isDarkMode ? "bg-[#1B273C] text-gray-500" : "bg-gray-200 text-gray-400")}`}
+                type={isLoading || isStreaming ? "button" : "submit"}
+                onClick={isLoading || isStreaming ? stopStreaming : undefined}
+                disabled={!input.trim() && !isLoading && !isStreaming}
+                className={`p-3 m-1 rounded-2xl transition-all duration-300 flex items-center justify-center min-w-[56px] disabled:opacity-50 disabled:cursor-not-allowed ${(input.trim() || isLoading || isStreaming) ? (isDarkMode ? "bg-[#FBBF24] text-[#0D131F] hover:bg-yellow-400 hover:shadow-lg hover:shadow-yellow-500/20" : "bg-indigo-600 text-white hover:bg-indigo-700") : (isDarkMode ? "bg-[#1B273C] text-gray-500" : "bg-gray-200 text-gray-400")}`}
               >
-                <Send size={20} className={input.trim() ? "translate-x-0.5" : ""} />
+                {isLoading || isStreaming ? (
+                  <Square size={16} className="fill-current animate-pulse" />
+                ) : (
+                  <Send size={20} className={input.trim() ? "translate-x-0.5" : ""} />
+                )}
               </button>
             </form>
             
