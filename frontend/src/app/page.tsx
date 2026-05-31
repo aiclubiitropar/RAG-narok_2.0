@@ -804,17 +804,20 @@ export default function Home() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSend();
+                    if (!isLoading && !isStreaming) {
+                      handleSend();
+                    }
                   }
                 }}
+                disabled={isLoading || isStreaming}
                 placeholder={messages.length === 0 ? "Ask the cluster a question..." : "Continue the conversation..."}
-                className={`w-full max-h-48 min-h-[56px] bg-transparent py-4 px-2 focus:outline-none resize-none font-medium text-[15px] ${isDarkMode ? "text-white placeholder-gray-500" : "text-gray-900 placeholder-gray-400"}`}
+                className={`w-full max-h-48 min-h-[56px] bg-transparent py-4 px-2 focus:outline-none resize-none font-medium text-[15px] disabled:opacity-50 disabled:cursor-not-allowed ${isDarkMode ? "text-white placeholder-gray-500" : "text-gray-900 placeholder-gray-400"}`}
                 rows={1}
               />
               
               <button 
                 type="submit" 
-                disabled={!input.trim() || isLoading}
+                disabled={!input.trim() || isLoading || isStreaming}
                 className={`p-3 m-1 rounded-2xl transition-all duration-300 flex items-center justify-center min-w-[56px] disabled:opacity-50 disabled:cursor-not-allowed ${input.trim() ? (isDarkMode ? "bg-[#FBBF24] text-[#0D131F] hover:bg-yellow-400 hover:shadow-lg hover:shadow-yellow-500/20" : "bg-indigo-600 text-white hover:bg-indigo-700") : (isDarkMode ? "bg-[#1B273C] text-gray-500" : "bg-gray-200 text-gray-400")}`}
               >
                 <Send size={20} className={input.trim() ? "translate-x-0.5" : ""} />
