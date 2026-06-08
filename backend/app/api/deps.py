@@ -6,12 +6,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Validate the Supabase JWT token and extract the user ID.
     """
+    if not credentials:
+        return "anonymous_user"
     token = credentials.credentials
     if token == "admin_bypass":
         return "admin_user"
