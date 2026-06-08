@@ -13,8 +13,7 @@ from app.core.config import settings
 
 # CORS configuration
 origins = [
-    "http://localhost:3000",  # Next.js frontend
-    "http://127.0.0.1:3000"
+    "https://rag-narok.vercel.app"
 ]
 
 if settings.EXTERNAL_URL:
