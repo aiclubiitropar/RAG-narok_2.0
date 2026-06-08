@@ -9,11 +9,16 @@ app = FastAPI(
     version="2.0.0"
 )
 
+from app.core.config import settings
+
 # CORS configuration
 origins = [
     "http://localhost:3000",  # Next.js frontend
     "http://127.0.0.1:3000"
 ]
+
+if settings.EXTERNAL_URL:
+    origins.append(settings.EXTERNAL_URL.rstrip("/"))
 
 app.add_middleware(
     CORSMiddleware,
