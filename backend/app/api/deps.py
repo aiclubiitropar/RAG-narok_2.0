@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from app.core.config import settings
@@ -8,12 +8,21 @@ logger = logging.getLogger(__name__)
 
 security = HTTPBearer(auto_error=False)
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Validate the Supabase JWT token and extract the user ID.
     """
     if not credentials:
-        return "anonymous_user"
+        origin = request.headers.get("origin")
+        external_url = settings.EXTERNAL_URL.rstrip("/") if settings.EXTERNAL_URL else None
+        if external_url and origin == external_url:
+            return "anonymous_user"
+        
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials were not provided.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     if token == "admin_bypass":
         return "admin_user"
