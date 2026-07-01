@@ -18,6 +18,8 @@ origins = [
 
 if settings.EXTERNAL_URL:
     origins.append(settings.EXTERNAL_URL.rstrip("/"))
+if settings.EXTERNAL_URL1:
+    origins.append(settings.EXTERNAL_URL1.rstrip("/"))
 
 app.add_middleware(
     CORSMiddleware,

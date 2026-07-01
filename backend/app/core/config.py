@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "RAGnarok 2.0"
     VERSION: str = "2.0.0"
     EXTERNAL_URL: Optional[str] = os.getenv("EXTERNAL_URL")
+    EXTERNAL_URL1: Optional[str] = os.getenv("EXTERNAL_URL1")
     
     # Qdrant configurations
     QDRANT_URL: str = os.getenv("QDRANT_URL", "https://c44fd71d-99f2-4329-b661-b069e0598086.us-east-2-0.aws.cloud.qdrant.io:6333")
