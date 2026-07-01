@@ -117,7 +117,9 @@ async def chat_stream_endpoint(request: ChatRequest, current_user_id: str = Depe
             yield f"data: {json.dumps({'route_taken': route_taken})}\n\n"
             
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            print(f"Error in chat stream: {str(e)}") # Log the real error for backend debugging
+            user_friendly_error = "Error Sending message :\n1) Check your internet connection.\n2) We might be experiencing high traffic. Please try again later."
+            yield f"data: {json.dumps({'error': user_friendly_error})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -176,4 +178,6 @@ async def chat_endpoint(request: ChatRequest, current_user_id: str = Depends(get
             route_taken=final_state.get("next_node")
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error in chat endpoint: {str(e)}") # Log the real error for backend debugging
+        user_friendly_error = "Error Sending message :\n1) Check your internet connection.\n2) We might be experiencing high traffic. Please try again later."
+        raise HTTPException(status_code=500, detail=user_friendly_error)
