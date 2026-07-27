@@ -11,71 +11,21 @@ logger = logging.getLogger(__name__)
 
 import json
 
-class GradioEmbeddings(Embeddings):
-    def __init__(self):
-        self._client = None
+from sentence_transformers import SentenceTransformer
 
-    @property
-    def client(self):
-        if self._client is None:
-            self._client = Client("IotaCluster/embedding-model", token=settings.HF_TOKEN)
-        return self._client
-
-    def _extract_embedding(self, result) -> list[float]:
-        if isinstance(result, str):
-            try:
-                result = json.loads(result)
-            except:
-                try:
-                    result = ast.literal_eval(result)
-                except:
-                    pass
-        
-        if isinstance(result, list):
-            return result
-        elif isinstance(result, dict):
-            if "dense_embedding" in result:
-                return result["dense_embedding"]
-            elif "" in result and isinstance(result[""], dict) and "dense_embedding" in result[""]:
-                return result[""]["dense_embedding"]
-            for v in result.values():
-                if isinstance(v, list):
-                    return v
-                if isinstance(v, dict) and "dense_embedding" in v:
-                    return v["dense_embedding"]
-        return result
+class LocalEmbeddings(Embeddings):
+    def __init__(self, model_name='multi-qa-mpnet-base-cos-v1'):
+        self.model = SentenceTransformer(model_name)
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        embeddings = []
-        for t in texts:
-            embeddings.append(self.embed_query(t))
-        return embeddings
+        # SentenceTransformer handles batching naturally
+        return self.model.encode(texts, convert_to_numpy=True).tolist()
 
     def embed_query(self, text: str) -> list[float]:
-        import time
-        max_retries = 5
-        base_delay = 2.0
-        
-        for attempt in range(max_retries):
-            try:
-                result = self.client.predict(text=text, api_name="/embed_dense")
-                return self._extract_embedding(result)
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    logger.error(f"Failed to get embeddings after {max_retries} attempts: {e}")
-                    raise
-                
-                # If rate limited, sleep and retry
-                error_str = str(e).lower()
-                if "too many requests" in error_str or "rate limit" in error_str or "500" in error_str or "503" in error_str:
-                    delay = base_delay * (2 ** attempt)
-                    logger.warning(f"Embedding API rate limited. Retrying in {delay} seconds (Attempt {attempt+1}/{max_retries})...")
-                    time.sleep(delay)
-                else:
-                    raise
+        return self.model.encode(text, convert_to_numpy=True).tolist()
 
 # Initialize embeddings
-embeddings = GradioEmbeddings()
+embeddings = LocalEmbeddings()
 
 # Initialize Qdrant client using Cloud URL and API Key
 client = QdrantClient(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
