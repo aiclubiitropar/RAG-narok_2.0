@@ -72,7 +72,7 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
     
     primary_model_name = model_name
     if use_sum_key:
-        primary_model_name = random.choice(["gemma-4-26b-a4b-it", "gemma-4-31b-it", "llama-3.3-70b-versatile", "qwen/qwen3-32b"])
+        primary_model_name = random.choice(["gemma-4-26b-a4b-it", "gemma-4-31b-it", "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"])
     elif primary_model_name == "rotate":
         gemini_models = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.0-flash"]
         
@@ -88,7 +88,7 @@ def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: b
             weights = [3, 3, 3, 1, 1] + [1] * len(gemini_models)
             primary_model_name = random.choices(models, weights=weights, k=1)[0]
         else:
-            models = ["llama-3.3-70b-versatile", "gemma-4-26b-a4b-it", "gemma-4-31b-it", "qwen/qwen3-32b", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
+            models = ["llama-3.3-70b-versatile", "gemma-4-26b-a4b-it", "gemma-4-31b-it", "qwen/qwen3.6-27b", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
             weights = [3, 3, 3, 3, 1, 1, 1] + [1] * len(gemini_models)
             primary_model_name = random.choices(models, weights=weights, k=1)[0]
             
