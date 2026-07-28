@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", message="coroutine 'ClientResponse.json' was never awaited")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
