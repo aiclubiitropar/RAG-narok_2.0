@@ -168,7 +168,7 @@ class EmailScraper:
                                 subject = str(subject)
                         
                         date = msg.get("Date")
-                        attachments_text = ""
+                        pdf_attachments = []
                         if msg.is_multipart():
                             for part in msg.walk():
                                 content_disposition = str(part.get("Content-Disposition"))
@@ -178,23 +178,29 @@ class EmailScraper:
                                         payload = part.get_payload(decode=True)
                                         try:
                                             pdf_reader = PyPDF2.PdfReader(BytesIO(payload))
+                                            extracted_text = ""
                                             for page in pdf_reader.pages:
                                                 extracted = page.extract_text()
                                                 if extracted:
-                                                    attachments_text += extracted + "\n"
+                                                    extracted_text += extracted + "\n"
+                                            if extracted_text.strip():
+                                                pdf_attachments.append({
+                                                    "filename": filename,
+                                                    "text": extracted_text
+                                                })
                                         except Exception as e:
-                                            logger.error(f"Failed to read Mess Menu PDF attachment: {e}")
+                                            logger.error(f"Failed to read Mess Menu PDF attachment ({filename}): {e}")
                                             if redis_client:
                                                 push_log(redis_client, f"PyPDF2 error on {filename}: {e}")
                         
-                        if attachments_text.strip():
+                        if pdf_attachments:
                             if redis_client:
-                                push_log(redis_client, f"Successfully extracted {len(attachments_text)} chars from {filename}")
+                                push_log(redis_client, f"Successfully extracted {len(pdf_attachments)} PDF menu(s) from '{subject}'")
                             return {
-                                "id": str(e_id.decode()),
+                                "id": str(e_id.decode() if isinstance(e_id, bytes) else e_id),
                                 "subject": subject,
                                 "date": date,
-                                "attachments_text": attachments_text
+                                "pdf_attachments": pdf_attachments
                             }
             return None
         except Exception as e:
@@ -206,8 +212,8 @@ class EmailScraper:
 @celery_app.task
 def fetch_and_process_mess_menu():
     """
-    Fetches the latest email with 'mess menu' in the subject, extracts the PDF,
-    formats it into a markdown table using the LLM, and replaces the existing mess menu in Qdrant.
+    Fetches the latest email with 'mess menu' in the subject, extracts all PDF attachments (Veg & Normal),
+    formats them into markdown tables using the LLM, and ingests them into Qdrant.
     """
     redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"), decode_responses=True)
     
@@ -228,35 +234,58 @@ def fetch_and_process_mess_menu():
     if last_processed_id == menu_data["id"]:
         return # Already processed this specific email
         
-    push_log(redis_client, f"Found new Mess Menu: {menu_data['subject']}. Parsing with LLM...")
+    push_log(redis_client, f"Found new Mess Menu: {menu_data['subject']} with {len(menu_data['pdf_attachments'])} PDF(s). Parsing with LLM...")
     
     import datetime
     readable_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
     
-    llm = get_llm(use_sum_key=True)
-    prompt = f"The following is raw text extracted from a Mess Menu PDF sent on {menu_data['date']}. Convert this exact information into a clean, well-formatted Markdown Table. Above the table, add a clear H3 heading stating the Month and Year. Do not include any other conversational text.\n\nRaw Text:\n{menu_data['attachments_text']}"
-    
-    response = llm.invoke([HumanMessage(content=prompt)])
-    markdown_table = _extract_and_clean_response(response.content)
-    
-    page_content = f"Source: Mess Menu\nDate Received: {menu_data['date']}\nIngestion Timestamp: {readable_time}\nSubject: {menu_data['subject']}\n\n{markdown_table}"
+    docs_to_ingest = []
+    for att in menu_data["pdf_attachments"]:
+        fname = att["filename"]
+        raw_text = att["text"]
         
-    doc = Document(
-        page_content=page_content,
-        metadata={"source": "mess_menu", "id": menu_data["id"], "timestamp": time.time()}
-    )
+        is_veg = "veg" in fname.lower() and "non" not in fname.lower()
+        menu_category = "Vegetarian Mess Menu" if is_veg else "Regular / Normal Mess Menu"
+        
+        push_log(redis_client, f"Parsing {fname} as {menu_category}...")
+        
+        llm = get_llm(use_sum_key=True)
+        prompt = (
+            f"The following is raw text extracted from a PDF of a hostel mess menu ({menu_category}, Filename: '{fname}') sent on {menu_data['date']}. "
+            f"Convert this exact information into a clean, well-formatted Markdown Table for the week/month (Monday to Sunday for Breakfast, Lunch, Snacks, Dinner). "
+            f"Above the table, add an H2 heading: '## {menu_category}' stating the Month and Year if available. "
+            f"Do not include any other conversational text.\n\nRaw Text:\n{raw_text}"
+        )
+        
+        response = llm.invoke([HumanMessage(content=prompt)])
+        markdown_table = _extract_and_clean_response(response.content)
+        
+        page_content = f"SOURCE: {menu_category} ({fname})\nTYPE: {menu_category}\nDate Received: {menu_data['date']}\nIngestion Timestamp: {readable_time}\nSubject: {menu_data['subject']}\n\n{markdown_table}"
+            
+        doc = Document(
+            page_content=page_content,
+            metadata={
+                "source": fname,
+                "type": "mess_menu",
+                "menu_category": "veg" if is_veg else "regular",
+                "id": menu_data["id"],
+                "timestamp": time.time()
+            }
+        )
+        docs_to_ingest.append(doc)
     
-    QdrantVectorStore.from_documents(
-        [doc],
-        embeddings,
-        url=settings.QDRANT_URL,
-        api_key=settings.QDRANT_API_KEY,
-        collection_name="shortterm_db",
-        force_recreate=False
-    )
-    
-    redis_client.set("last_processed_mess_menu_id", menu_data["id"])
-    push_log(redis_client, "Successfully updated the Mess Menu in shortterm_db.")
+    if docs_to_ingest:
+        QdrantVectorStore.from_documents(
+            docs_to_ingest,
+            embeddings,
+            url=settings.QDRANT_URL,
+            api_key=settings.QDRANT_API_KEY,
+            collection_name="shortterm_db",
+            force_recreate=False
+        )
+        
+        redis_client.set("last_processed_mess_menu_id", menu_data["id"])
+        push_log(redis_client, f"Successfully updated {len(docs_to_ingest)} Mess Menu(s) (Veg and Regular) in shortterm_db.")
 
 @celery_app.task
 def fetch_and_summarize_emails():

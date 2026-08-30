@@ -112,7 +112,7 @@ function pushUnreadEmailsToHuggingFace() {
 }
 
 function pushMessMenuToHuggingFace() {
-  Logger.log("Scanning for Mess Menu PDF...");
+  Logger.log("Scanning for Mess Menu PDF(s)...");
   const threads = GmailApp.search('subject:"Mess Menu" has:attachment', 0, 1);
 
   if (threads.length === 0) {
@@ -124,43 +124,48 @@ function pushMessMenuToHuggingFace() {
   const latestMessage = messages[messages.length - 1];
 
   const attachments = latestMessage.getAttachments();
-  let pdfAttachment = null;
+  const pdfAttachments = [];
 
   for (let i = 0; i < attachments.length; i++) {
     if (attachments[i].getContentType() === "application/pdf" || attachments[i].getName().toLowerCase().endsWith(".pdf")) {
-      pdfAttachment = attachments[i];
-      break;
+      pdfAttachments.push(attachments[i]);
     }
   }
 
-  if (!pdfAttachment) {
+  if (pdfAttachments.length === 0) {
     Logger.log("Found Mess Menu email, but no PDF attachment was found.");
     return;
   }
 
-  Logger.log("Found PDF: " + pdfAttachment.getName());
+  Logger.log("Found " + pdfAttachments.length + " PDF attachment(s) (e.g. Veg & Normal menus). Uploading each...");
 
-  const pdfBytes = pdfAttachment.getBytes();
-  const base64Data = Utilities.base64Encode(pdfBytes);
+  for (let i = 0; i < pdfAttachments.length; i++) {
+    const pdfAttachment = pdfAttachments[i];
+    Logger.log("Found PDF [" + (i + 1) + "/" + pdfAttachments.length + "]: " + pdfAttachment.getName());
 
-  const payload = {
-    "filename": pdfAttachment.getName(),
-    "base64_data": base64Data
-  };
+    const pdfBytes = pdfAttachment.getBytes();
+    const base64Data = Utilities.base64Encode(pdfBytes);
 
-  const options = {
-    "method": "post",
-    "contentType": "application/json",
-    "headers": {
-      "Authorization": "Bearer " + ADMIN_PASSWORD
-    },
-    "payload": JSON.stringify(payload),
-    "muteHttpExceptions": true
-  };
+    const payload = {
+      "filename": pdfAttachment.getName(),
+      "base64_data": base64Data
+    };
 
-  Logger.log("Pushing to Hugging Face webhook...");
-  const response = UrlFetchApp.fetch(HF_MESS_MENU_URL, options);
+    const options = {
+      "method": "post",
+      "contentType": "application/json",
+      "headers": {
+        "Authorization": "Bearer " + ADMIN_PASSWORD
+      },
+      "payload": JSON.stringify(payload),
+      "muteHttpExceptions": true
+    };
 
-  Logger.log("Response Code: " + response.getResponseCode());
-  Logger.log("Response Body: " + response.getContentText());
+    Logger.log("Pushing " + pdfAttachment.getName() + " to Hugging Face webhook...");
+    const response = UrlFetchApp.fetch(HF_MESS_MENU_URL, options);
+
+    Logger.log("Response Code for " + pdfAttachment.getName() + ": " + response.getResponseCode());
+    Logger.log("Response Body: " + response.getContentText());
+  }
 }
+

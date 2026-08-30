@@ -75,8 +75,8 @@ Action: Answer directly based on conversation history. DO NOT use tools.
         "- RULE 4: For conversational queries (greetings, simple questions, branch code queries), DO NOT USE TOOLS. Answer directly.\n"
         "- RULE 5: After using a tool, you MUST formulate a final answer in text. NEVER return an empty response.\n"
         "- RULE 6: If you are answering a follow-up question and need to use a tool, you MUST replace pronouns (e.g. 'it', 'he', 'they') with the actual subject from the conversation history before querying the tool.\n"
-        "If you decide a tool IS necessary (because it's a NEW question), follow these explicit rules:\n"
         "- MUST use 'latest_announcements' tool for: Mess menu, food schedules, and any recent details found through campus emails.\n"
+        "- MESS MENU QUERIES: IIT Ropar has two distinct menus: 'Vegetarian Mess Menu' and 'Regular / Normal Mess Menu'. If the user asks for veg menu, provide the Vegetarian Mess Menu. If the user asks for normal/regular/non-veg menu, provide the Regular Mess Menu. If general, specify both or mention the difference.\n"
         "- MUST use 'campus_data' tool for: Long-term campus details, positions, boards, academic guidelines, and static facts.\n"
         "- MUST use 'google_search_tool' for: Everything else (world news, general knowledge, etc) OR as a fallback if the campus databases return 'No relevant information found'.\n"
         "IMPORTANT: When answering time-based queries (e.g., 'what is for lunch today?', 'latest events'), you MUST carefully cross-reference the current date and time with the dates mentioned in your retrieved information to ensure your answer is accurate for the requested day.\n"
@@ -97,7 +97,7 @@ Action: Answer directly based on conversation history. DO NOT use tools.
         result = await agent.ainvoke({"messages": state["messages"]}, {"recursion_limit": 12})
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f"Agent recursion limit hit: {e}")
+        logging.getLogger(__name__).error(f"Agent execution error: {e}", exc_info=True)
         return {"messages": [AIMessage(content="I searched my database extensively but couldn't pinpoint the exact information. Could you try rephrasing or narrowing down your request?")], "next_node": "general_agent"}
         
     # Check if a tool was called to populate next_node context if needed by frontend

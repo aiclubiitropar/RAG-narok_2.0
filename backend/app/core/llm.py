@@ -14,21 +14,30 @@ class GroqKeyManager:
     def __init__(self):
         self.keys = []
         for key, value in os.environ.items():
-            if key.startswith("GROQ_API_KEY") and value.strip():
-                self.keys.append(value.strip())
+            if (key.startswith("GROQ_API_KEY") or key == "GROQ_API_KEYS") and value.strip():
+                for k in value.split(","):
+                    k = k.strip()
+                    if k and k not in self.keys:
+                        self.keys.append(k)
                 
         if not self.keys:
             self.keys = ["dummy-key"]
 
     def get_random_key(self) -> str:
         return random.choice(self.keys)
+
+    def has_valid_key(self) -> bool:
+        return bool(self.keys and self.keys != ["dummy-key"])
 
 class GeminiKeyManager:
     def __init__(self):
         self.keys = []
         for key, value in os.environ.items():
-            if key.startswith("GEMINI_API_KEY") and value.strip():
-                self.keys.append(value.strip())
+            if (key.startswith("GEMINI_API_KEY") or key.startswith("GOOGLE_API_KEY") or key in ("GEMINI_API_KEYS", "GOOGLE_API_KEYS")) and value.strip():
+                for k in value.split(","):
+                    k = k.strip()
+                    if k and k not in self.keys:
+                        self.keys.append(k)
                 
         if not self.keys:
             self.keys = ["dummy-key"]
@@ -36,11 +45,14 @@ class GeminiKeyManager:
     def get_random_key(self) -> str:
         return random.choice(self.keys)
 
+    def has_valid_key(self) -> bool:
+        return bool(self.keys and self.keys != ["dummy-key"])
+
 groq_key_manager = GroqKeyManager()
 gemini_key_manager = GeminiKeyManager()
 
-def create_llm_instance(model_name: str, temperature: float, use_sum_key: bool):
-    if model_name.startswith("gemini") or model_name.startswith("gemma"):
+def create_llm_instance(model_name: str, temperature: float = 0.0, use_sum_key: bool = False):
+    if model_name.startswith("gemini"):
         api_key = gemini_key_manager.get_random_key()
         if use_sum_key:
             sum_key = os.getenv("GEM_SUM")
@@ -70,37 +82,76 @@ def create_llm_instance(model_name: str, temperature: float, use_sum_key: bool):
 def get_llm(model_name: str = "rotate", temperature: float = 0.0, use_sum_key: bool = False, estimated_tokens: int = 0):
     """Returns an LLM instance with robust cross-provider fallbacks to bypass rate limits seamlessly."""
     
+    has_gemini = gemini_key_manager.has_valid_key()
+    has_groq = groq_key_manager.has_valid_key()
+    
+    gemini_models = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
+    groq_models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "qwen/qwen3.6-27b"]
+
     primary_model_name = model_name
     if use_sum_key:
-        primary_model_name = random.choice(["gemma-4-26b-a4b-it", "gemma-4-31b-it", "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"])
+        candidate_models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "qwen/qwen3.6-27b"]
+        if has_gemini:
+            candidate_models.append("gemini-2.0-flash")
+        primary_model_name = random.choice(candidate_models)
     elif primary_model_name == "rotate":
-        gemini_models = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-3.0-flash"]
-        
         if estimated_tokens > 12000:
-            # Groq's max limit is 12K. Exceeding this routes purely to Gemini (1M TPM)
-            primary_model_name = random.choice(gemini_models)
+            if has_gemini:
+                models = ["gemini-2.0-flash", "openai/gpt-oss-120b"]
+                primary_model_name = random.choice(models)
+            else:
+                primary_model_name = "openai/gpt-oss-120b"
         elif estimated_tokens > 8000:
-            models = ["llama-3.3-70b-versatile", "gemma-4-31b-it"] + gemini_models
-            weights = [3, 3] + [1] * len(gemini_models)
+            models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
+            weights = [4, 2]
+            if has_gemini:
+                models.extend(gemini_models)
+                weights.extend([3, 1])
             primary_model_name = random.choices(models, weights=weights, k=1)[0]
         elif estimated_tokens > 3000:
-            models = ["llama-3.3-70b-versatile", "gemma-4-26b-a4b-it", "gemma-4-31b-it", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
-            weights = [3, 3, 3, 1, 1] + [1] * len(gemini_models)
+            models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "qwen/qwen3.6-27b"]
+            weights = [3, 2, 2]
+            if has_gemini:
+                models.extend(gemini_models)
+                weights.extend([3, 1])
             primary_model_name = random.choices(models, weights=weights, k=1)[0]
         else:
-            models = ["llama-3.3-70b-versatile", "gemma-4-26b-a4b-it", "gemma-4-31b-it", "qwen/qwen3.6-27b", "llama-3.1-8b-instant", "openai/gpt-oss-120b", "openai/gpt-oss-20b"] + gemini_models
-            weights = [3, 3, 3, 3, 1, 1, 1] + [1] * len(gemini_models)
+            models = ["qwen/qwen3.8-27b", "qwen/qwen3.6-27b", "openai/gpt-oss-120b"]
+            weights = [3, 3, 1]
+            if has_gemini:
+                models.extend(gemini_models)
+                weights.extend([3, 1])
             primary_model_name = random.choices(models, weights=weights, k=1)[0]
             
     primary_llm = create_llm_instance(primary_model_name, temperature, use_sum_key)
     
-    # Define cross-provider fallbacks: If Gemini is rate limited, try Groq. If Groq is limited, try Gemini.
-    if primary_model_name.startswith("gemini") or primary_model_name.startswith("gemma"):
-        fallback_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    # Define cross-provider fallbacks: If Gemini is rate limited, try Groq. If Groq is limited, try other models / Gemini.
+    if primary_model_name.startswith("gemini"):
+        fallback_models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "gemini-2.0-flash-lite"]
+    elif primary_model_name == "openai/gpt-oss-120b":
+        fallback_models = ["qwen/qwen3.8-27b", "qwen/qwen3.6-27b"]
+        if has_gemini:
+            fallback_models.append("gemini-2.0-flash")
+    elif primary_model_name == "qwen/qwen3.8-27b":
+        fallback_models = ["qwen/qwen3.6-27b", "openai/gpt-oss-120b"]
+        if has_gemini:
+            fallback_models.append("gemini-2.0-flash")
+    elif primary_model_name == "qwen/qwen3.6-27b":
+        fallback_models = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b"]
+        if has_gemini:
+            fallback_models.append("gemini-2.0-flash")
     else:
-        fallback_models = ["gemini-1.5-flash", "llama-3.1-8b-instant"]
+        fallback_models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "qwen/qwen3.6-27b"]
+        if has_gemini:
+            fallback_models.append("gemini-2.0-flash")
         
-    fallbacks = [create_llm_instance(m, temperature, use_sum_key) for m in fallback_models if m != primary_model_name]
+    fallback_instances = [
+        create_llm_instance(m, temperature, use_sum_key) 
+        for m in fallback_models 
+        if m != primary_model_name
+    ]
     
-    # Langchain natively wraps the LLM to automatically retry with fallbacks upon failure (e.g. 429 Rate Limits)
-    return primary_llm.with_fallbacks(fallbacks)
+    if fallback_instances:
+        return primary_llm.with_fallbacks(fallback_instances)
+    return primary_llm
+

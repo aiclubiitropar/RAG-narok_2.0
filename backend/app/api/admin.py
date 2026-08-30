@@ -220,16 +220,26 @@ async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Heade
         if not extracted_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract any text from the PDF. It may be image-based.")
 
-        # Structure the messy PDF text using Groq
+        # Identify Menu Type (Veg vs Normal/Regular)
+        is_veg = "veg" in req.filename.lower() and "non" not in req.filename.lower()
+        menu_category = "Vegetarian Mess Menu" if is_veg else "Regular / Normal Mess Menu"
+
+        # Structure the messy PDF text using LLM
         llm = get_llm(use_sum_key=True)
-        prompt = f"The following text was extracted from a PDF of a hostel mess menu (food schedule for the week/month). The text is very messy because of the PDF extraction. Please reconstruct this into a clean, easy-to-read Markdown table. Do not include any extra conversation, ONLY output the Markdown table.\n\nRaw Text:\n{extracted_text}"
+        prompt = (
+            f"The following text was extracted from a PDF of a hostel mess menu ({menu_category}, Filename: '{req.filename}'). "
+            f"The text is messy due to PDF extraction. Please reconstruct this into a clean, easy-to-read Markdown table for the week/month (Monday through Sunday for Breakfast, Lunch, Snacks, Dinner). "
+            f"Above the table, add an H2 title: '## {menu_category}' followed by the Month/Year if mentioned in the text. "
+            f"Do not include any extra conversation, ONLY output the heading and Markdown table.\n\n"
+            f"Raw Text:\n{extracted_text}"
+        )
         
         from worker.tasks.email_tasks import _extract_and_clean_response
         response = await llm.ainvoke([HumanMessage(content=prompt)])
         structured_menu = _extract_and_clean_response(response.content)
 
         # Log it to Redis so it appears in the UI
-        log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] Apps Script pushed {req.filename}. Structured and saved successfully!"
+        log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] Apps Script pushed {req.filename} ({menu_category}). Structured and saved successfully!"
         try:
             redis_client.lpush("email_worker_logs", log_msg)
             redis_client.ltrim("email_worker_logs", 0, 99)
@@ -238,8 +248,13 @@ async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Heade
 
         # Ingest into Qdrant shortterm collection
         doc = Document(
-            page_content=f"MESS MENU ({req.filename}):\n\n{structured_menu}",
-            metadata={"source": req.filename, "type": "mess_menu", "date_processed": datetime.now().isoformat()}
+            page_content=f"SOURCE: {menu_category} ({req.filename})\nTYPE: {menu_category}\n\n{structured_menu}",
+            metadata={
+                "source": req.filename, 
+                "type": "mess_menu", 
+                "menu_category": "veg" if is_veg else "regular",
+                "date_processed": datetime.now().isoformat()
+            }
         )
         
         QdrantVectorStore.from_documents(
@@ -251,7 +266,7 @@ async def upload_base64_pdf(req: Base64UploadRequest, authorization: str = Heade
             force_recreate=False
         )
         
-        return {"status": "success", "message": f"Successfully ingested {req.filename}"}
+        return {"status": "success", "message": f"Successfully ingested {req.filename} as {menu_category}"}
         
     except Exception as e:
         error_msg = f"Failed to process PDF: {str(e)}"
